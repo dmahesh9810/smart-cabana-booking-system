@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\AdminBookingResource;
+use App\Http\Resources\AdminPaymentResource;
 use App\Services\SystemActivityService;
 use Illuminate\Http\Request;
 
-class AdminBookingController extends Controller
+class AdminPaymentController extends Controller
 {
     private \App\Services\SystemActivityService $dashboardService;
 
@@ -17,11 +17,11 @@ class AdminBookingController extends Controller
     }
 
     /**
-     * Display a paginated list of all bookings for admins
+     * Display a paginated list of payments for admins
      */
     public function index()
     {
-        $bookings = $this->dashboardService->getBookings();
-        return AdminBookingResource::collection($bookings);
+        $payments = $this->dashboardService->getPayments();
+        return AdminPaymentResource::collection($payments);
     }
 }

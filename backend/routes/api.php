@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\AvailabilityController;
 use App\Http\Controllers\Api\AdminCabanaController;
 use App\Http\Controllers\Api\AdminBookingController;
 use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\AdminPaymentController;
 
 Route::prefix('v1')->group(function () {
     // Auth Routes
@@ -21,7 +22,7 @@ Route::prefix('v1')->group(function () {
     // Public Cabana Routes
     Route::get('/cabanas', [CabanaController::class , 'index']);
     Route::get('/cabanas/{id}', [CabanaController::class , 'show']);
-    Route::get('/cabanas/{id}/reviews', [CabanaController::class , 'reviews']);
+    Route::get('/cabanas/{id}/reviews', [ReviewController::class , 'index']);
 
     // Availability
     Route::post('/cabanas/{id}/check-availability', [AvailabilityController::class , 'check']);
@@ -35,7 +36,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/bookings/{id}', [BookingController::class , 'show']);
 
             Route::post('/payments/initiate', [PaymentController::class , 'initiate']);
-            Route::post('/reviews', [ReviewController::class , 'store']);
+            Route::post('/bookings/{id}/reviews', [ReviewController::class , 'store']);
         }
         );
 
@@ -53,10 +54,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/cabanas/{id}/block-dates', [\App\Http\Controllers\Api\AdminAvailabilityController::class , 'blockDates']);
             Route::delete('/availability/{id}', [\App\Http\Controllers\Api\AdminAvailabilityController::class , 'removeBlock']);
 
-        // Route::apiResource('bookings', AdminBookingController::class)->except(['store']);
-        // Route::put('/bookings/{id}/status', [AdminBookingController::class , 'updateStatus']);
-    
-        // Route::get('/dashboard/stats', [AdminDashboardController::class , 'stats']);
+            Route::get('/bookings', [AdminBookingController::class , 'index']);
+            Route::get('/payments', [AdminPaymentController::class , 'index']);
+            Route::get('/dashboard/stats', [AdminDashboardController::class , 'stats']);
         }
         );
     });

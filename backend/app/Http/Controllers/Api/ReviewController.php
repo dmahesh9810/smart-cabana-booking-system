@@ -3,47 +3,46 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreReviewRequest;
+use App\Http\Resources\ReviewResource;
+use App\Models\Cabana;
+use App\Services\ReviewService;
 
 class ReviewController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    private ReviewService $reviewService;
+
+    public function __construct(ReviewService $reviewService)
     {
-        //
+        $this->reviewService = $reviewService;
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Display a listing of the reviews for a cabana.
      */
-    public function store(Request $request)
+    public function index($cabanaId)
     {
-        //
+        $cabana = Cabana::findOrFail($cabanaId);
+        // Eager load user to avoid N+1 when formatting reviews
+        $reviews = $cabana->reviews()->with('user')->latest()->get();
+
+        return ReviewResource::collection($reviews);
     }
 
     /**
-     * Display the specified resource.
+     * Store a newly created review for a booking.
      */
-    public function show(string $id)
+    public function store(StoreReviewRequest $request, $bookingId)
     {
-        //
-    }
+        $user = $request->user();
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+        $booking = $this->reviewService->validateBookingEligibility($bookingId, $user->id);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        $review = $this->reviewService->createReview($booking, $request->validated());
+
+        return response()->json([
+            'message' => 'Review submitted successfully',
+            'data' => new ReviewResource($review->load('user'))
+        ], 201);
     }
 }
