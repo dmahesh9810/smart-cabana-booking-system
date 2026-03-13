@@ -14,11 +14,13 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('booking_id')->constrained()->cascadeOnDelete();
-            $table->string('transaction_id')->unique()->nullable();
+            $table->string('order_id')->unique();
             $table->decimal('amount', 10, 2);
+            $table->string('currency')->default('LKR');
             $table->string('payment_method')->default('PayHere');
-            $table->enum('status', ['pending', 'successful', 'failed', 'refunded'])->default('pending');
-            $table->timestamps();
+            $table->enum('payment_status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
+            $table->string('payhere_payment_id')->unique()->nullable();
+            $table->timestamps(); // includes created_at and updated_at
         });
     }
 

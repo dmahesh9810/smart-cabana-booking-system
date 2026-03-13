@@ -1,0 +1,34 @@
+{
+  "name": "cabana-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "apexcharts": "^5.10.3",
+    "axios": "^1.13.6",
+    "pinia": "^3.0.4",
+    "vue": "^3.5.25",
+    "vue-router": "^4.6.4",
+    "vue-toastification": "^2.0.0-rc.5",
+    "vue3-apexcharts": "^1.11.1"
+  },
+  "devDependencies": {
+    "@pinia/testing": "^1.0.3",
+    "@tailwindcss/postcss": "^4.2.1",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "@vue/test-utils": "^2.4.6",
+    "autoprefixer": "^10.4.27",
+    "axios-mock-adapter": "^2.1.0",
+    "jsdom": "^28.1.0",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.1",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  }
+}

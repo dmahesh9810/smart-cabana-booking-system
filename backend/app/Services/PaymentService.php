@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentService
 {
+    /**
+     * Initiates a completely new PayHere Payment request.
+     */
     public function initiatePayment(int $bookingId, int $userId): array
     {
         $booking = Booking::where('id', $bookingId)
@@ -20,23 +23,15 @@ class PaymentService
             throw new \Exception('Payment can only be initiated for pending bookings.');
         }
 
-        // Create or update payment record
-        $payment = Payment::updateOrCreate(
-            ['booking_id' => $booking->id],
-            [
-                'amount' => $booking->total_amount,
-                'payment_method' => 'PayHere',
-                'status' => 'pending',
-            ]
-        );
+        $merchantId = (string) config('services.payhere.merchant_id');
+        $merchantSecret = config('services.payhere.secret');
+        $currency = 'LKR';
+        
+        // Generate entirely new order_id format as requested: CABANA-{booking_id}-{timestamp}
+        $orderId = 'CABANA-' . $booking->id . '-' . time();
+        $amount = number_format((float) $booking->total_amount, 2, '.', ''); // Strictly 2 decimals
 
-        $merchantId = config('payhere.merchant_id');
-        $merchantSecret = config('payhere.merchant_secret');
-        $currency = config('payhere.currency');
-        $orderId = $booking->booking_ref;
-        $amount = number_format($booking->total_amount, 2, '.', '');
-
-        // Hash pattern: strtoupper(md5(merchant_id . order_id . amount . currency . strtoupper(md5(merchant_secret))))
+        // Generate rigorous PayHere Hash
         $hash = strtoupper(
             md5(
                 $merchantId .
@@ -47,29 +42,47 @@ class PaymentService
             )
         );
 
+        // Update database payment record
+        $payment = Payment::updateOrCreate(
+            ['booking_id' => $booking->id],
+            [
+                'order_id' => $orderId,
+                'amount' => $booking->total_amount,
+                'currency' => $currency,
+                'payment_method' => 'PayHere',
+                'payment_status' => 'pending',
+                'payhere_payment_id' => null
+            ]
+        );
+
+        // Return exact PayHere payload matching the JS SDK
         return [
+            'sandbox' => true,
             'merchant_id' => $merchantId,
-            'return_url' => url('/api/v1/payments/return'),
-            'cancel_url' => url('/api/v1/payments/cancel'),
-            'notify_url' => url('/api/v1/payments/payhere-webhook'),
+            'return_url' => env('FRONTEND_URL', 'http://localhost:5173') . '/booking/success',
+            'cancel_url' => env('FRONTEND_URL', 'http://localhost:5173') . '/booking/cancel',
+            'notify_url' => rtrim(env('APP_URL', config('app.url')), '/') . '/api/v1/payments/payhere-webhook',
             'order_id' => $orderId,
-            'items' => 'Cabana Booking',
+            'items' => 'Smart Cabana Booking #' . $booking->id,
             'currency' => $currency,
             'amount' => $amount,
-            'hash' => $hash,
             'first_name' => $booking->user->name ?? 'Guest',
-            'last_name' => '',
-            'email' => $booking->user->email ?? '',
-            'phone' => $booking->user->phone ?? '',
-            'address' => '',
-            'city' => '',
+            'last_name' => 'User',
+            'email' => $booking->user->email ?? 'no-reply@smartcabana.lk',
+            'phone' => $booking->user->phone ?? '0000000000',
+            'address' => 'N/A',
+            'city' => 'Colombo',
             'country' => 'Sri Lanka',
+            'hash' => $hash
         ];
     }
 
+    /**
+     * Strictly handles the webhook ping from PayHere servers.
+     */
     public function handleWebhook(array $payload): void
     {
-        Log::info('PayHere Webhook payload:', $payload);
+        Log::info('PayHere Webhook Received:', $payload);
 
         $merchantId = $payload['merchant_id'] ?? '';
         $orderId = $payload['order_id'] ?? '';
@@ -79,15 +92,16 @@ class PaymentService
         $md5sig = $payload['md5sig'] ?? '';
         $paymentId = $payload['payment_id'] ?? null;
 
-        $configMerchantId = config('payhere.merchant_id');
-        $merchantSecret = config('payhere.merchant_secret');
+        $configMerchantId = config('services.payhere.merchant_id');
+        $merchantSecret = config('services.payhere.secret');
 
-        // Check merchant ID matches config
+        // Validation 1: Internal Merchant ID match
         if ($merchantId !== (string)$configMerchantId) {
-            Log::warning('PayHere Webhook: Invalid merchant_id', ['payload' => $payload]);
+            Log::error('PayHere Webhook: Invalid merchant_id', ['payload' => $payload]);
             throw new \Exception('Invalid Merchant ID');
         }
 
+        // Validation 2: MD5 Signature Generation and Match
         $localHash = strtoupper(
             md5(
                 $merchantId .
@@ -100,34 +114,47 @@ class PaymentService
         );
 
         if ($localHash !== strtoupper($md5sig)) {
-            Log::warning('PayHere Webhook: Signature mismatch', ['payload' => $payload]);
-            throw new \Exception('Invalid signature');
+            Log::error('PayHere Webhook: Signature mismatch! Potential tampering.', ['payload' => $payload, 'localHash' => $localHash]);
+            throw new \Exception('Invalid Webhook Signature');
         }
 
-        if ($statusCode == 2) {
-            DB::transaction(function () use ($orderId, $payhereAmount, $paymentId) {
-                // Find booking by reference (order_id)
-                $booking = Booking::where('booking_ref', $orderId)->lockForUpdate()->firstOrFail();
+        // DB Transaction for safety
+        DB::transaction(function () use ($orderId, $payhereAmount, $paymentId, $statusCode) {
+            $payment = Payment::where('order_id', $orderId)->lockForUpdate()->first();
+            
+            if (!$payment) {
+                Log::warning('PayHere Webhook: Payment record not found', ['order_id' => $orderId]);
+                return;
+            }
 
-                // Validate the amount strictly
-                if (number_format($booking->total_amount, 2, '.', '') !== number_format((float)$payhereAmount, 2, '.', '')) {
-                    Log::error('PayHere Webhook: Amount mismatch', [
-                        'expected' => $booking->total_amount,
-                        'received' => $payhereAmount
-                    ]);
-                    throw new \Exception('Amount mismatch');
-                }
+            $booking = Booking::where('id', $payment->booking_id)->lockForUpdate()->first();
 
-                $payment = Payment::where('booking_id', $booking->id)->lockForUpdate()->firstOrFail();
+            if (!$booking) {
+                Log::warning('PayHere Webhook: Booking record not found', ['booking_id' => $payment->booking_id]);
+                return;
+            }
 
-                if ($payment->status === 'successful') {
-                    // Prevent duplicate processing
+            // Validation 3: Check correct status code 2 = Success
+            if ($statusCode == 2) {
+                
+                // Prevent double processing
+                if ($payment->payment_status === 'paid') {
                     return;
                 }
 
+                // Strict Amount Check
+                if (number_format($payment->amount, 2, '.', '') !== number_format((float)$payhereAmount, 2, '.', '')) {
+                     Log::error('PayHere Webhook: Paid amount mismatch', [
+                        'db_amount' => $payment->amount,
+                        'received_amount' => $payhereAmount
+                    ]);
+                    throw new \Exception('Amount mismatch between DB and PayHere');
+                }
+
+                // Update precise records
                 $payment->update([
-                    'status' => 'successful',
-                    'transaction_id' => $paymentId
+                    'payment_status' => 'paid',
+                    'payhere_payment_id' => $paymentId
                 ]);
 
                 $booking->update([
@@ -137,23 +164,18 @@ class PaymentService
                 BookingLog::create([
                     'booking_id' => $booking->id,
                     'action' => 'payment_received',
-                    'notes' => "Payment ID: {$paymentId}"
+                    'notes' => "Webhook confirmed Payment ID: {$paymentId}"
                 ]);
-            });
-        } elseif ($statusCode < 0) {
-            // Negative status code implies failure or cancellation
-            DB::transaction(function () use ($orderId, $paymentId) {
-                $booking = Booking::where('booking_ref', $orderId)->first();
-                if ($booking) {
-                    $payment = Payment::where('booking_id', $booking->id)->first();
-                    if ($payment && $payment->status !== 'successful') {
-                        $payment->update([
-                            'status' => 'failed',
-                            'transaction_id' => $paymentId
-                        ]);
-                    }
+
+            } elseif ($statusCode < 0) {
+                // Handle failures or cancellations identically
+                if ($payment->payment_status !== 'paid') {
+                    $payment->update([
+                        'payment_status' => 'failed',
+                        'payhere_payment_id' => $paymentId
+                    ]);
                 }
-            });
-        }
+            }
+        });
     }
 }

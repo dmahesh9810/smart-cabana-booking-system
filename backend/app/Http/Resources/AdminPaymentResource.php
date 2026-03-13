@@ -15,10 +15,14 @@ class AdminPaymentResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'transaction_id' => $this->transaction_id,
+            'id' => $this->id,
+            'order_id' => $this->order_id,
+            'payhere_payment_id' => $this->payhere_payment_id,
             'booking_ref' => $this->whenLoaded('booking', fn() => $this->booking->booking_ref),
             'amount' => $this->amount,
-            'status' => $this->status,
+            'currency' => $this->currency,
+            'payment_method' => $this->payment_method,
+            'payment_status' => $this->payment_status,
             'created_at' => $this->created_at->toIso8601String(),
         ];
     }

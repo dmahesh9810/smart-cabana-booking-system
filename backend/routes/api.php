@@ -36,6 +36,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/bookings/{id}', [BookingController::class , 'show']);
 
             Route::post('/payments/initiate', [PaymentController::class , 'initiate']);
+            Route::get('/payments/my-payments', [PaymentController::class , 'myPayments']);
             Route::post('/bookings/{id}/reviews', [ReviewController::class , 'store']);
         }
         );

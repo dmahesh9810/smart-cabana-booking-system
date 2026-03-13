@@ -18,7 +18,7 @@ class SystemActivityService
             'active_cabanas' => Cabana::where('is_active', true)->count(),
             'total_bookings' => Booking::count(),
             'confirmed_bookings' => Booking::where('status', 'confirmed')->count(),
-            'total_revenue' => Payment::where('status', 'successful')->sum('amount'),
+            'total_revenue' => Payment::where('payment_status', 'paid')->sum('amount'),
             'average_rating' => round((float) $avgRating, 1),
             'upcoming_bookings' => Booking::where('status', 'confirmed')->where('check_in', '>=', Carbon::today()->toDateString())->count(),
         ];
