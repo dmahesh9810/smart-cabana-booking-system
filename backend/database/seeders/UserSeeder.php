@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-use App\Models\Role;
 
 class UserSeeder extends Seeder
 {
@@ -14,30 +13,30 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        $adminRole = Role::where('name', 'admin')->first();
-        $customerRole = Role::where('name', 'customer')->first();
+        $users = [
+            ['name' => 'John Doe', 'email' => 'john@example.com'],
+            ['name' => 'Jane Smith', 'email' => 'jane@example.com'],
+            ['name' => 'Michael Johnson', 'email' => 'michael@example.com'],
+            ['name' => 'Emily Davis', 'email' => 'emily@example.com'],
+            ['name' => 'William Brown', 'email' => 'william@example.com'],
+            ['name' => 'Olivia Wilson', 'email' => 'olivia@example.com'],
+            ['name' => 'James Taylor', 'email' => 'james@example.com'],
+            ['name' => 'Sophia Anderson', 'email' => 'sophia@example.com'],
+            ['name' => 'Benjamin Thomas', 'email' => 'benjamin@example.com'],
+            ['name' => 'Isabella Jackson', 'email' => 'isabella@example.com'],
+        ];
 
-        if ($adminRole) {
-            User::firstOrCreate(
-            ['email' => 'admin@example.com'],
-            [
-                'name' => 'Admin User',
-                'password' => Hash::make('password'),
-                'phone' => '1234567890',
-                'role_id' => $adminRole->id
-            ]
-            );
-        }
+        $customerRoleId = \App\Models\Role::where('name', 'customer')->value('id') ?? 2;
 
-        if ($customerRole) {
+        foreach ($users as $user) {
             User::firstOrCreate(
-            ['email' => 'customer@example.com'],
-            [
-                'name' => 'Sample Customer',
-                'password' => Hash::make('password'),
-                'phone' => '0987654321',
-                'role_id' => $customerRole->id
-            ]
+                ['email' => $user['email']],
+                [
+                    'name' => $user['name'],
+                    'password' => Hash::make('password'),
+                    'role_id' => $customerRoleId,
+                    'email_verified_at' => now(),
+                ]
             );
         }
     }

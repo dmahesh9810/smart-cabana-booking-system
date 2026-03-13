@@ -11,6 +11,11 @@
         </p>
       </div>
 
+      <!-- Recommendation Section -->
+      <div class="mb-16">
+        <RecommendedCabanas />
+      </div>
+
       <!-- Loading State -->
       <div v-if="cabanaStore.loading" class="flex justify-center items-center py-20">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -43,6 +48,7 @@
 import { onMounted } from 'vue';
 import { useCabanaStore } from '../store/cabanaStore';
 import CabanaCard from '../components/CabanaCard.vue';
+import RecommendedCabanas from '../components/RecommendedCabanas.vue';
 
 const cabanaStore = useCabanaStore();
 

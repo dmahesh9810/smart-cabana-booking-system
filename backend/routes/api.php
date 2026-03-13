@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\AdminCabanaController;
 use App\Http\Controllers\Api\AdminBookingController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminPaymentController;
+use App\Http\Controllers\Api\RecommendationController;
 
 Route::prefix('v1')->group(function () {
     // Auth Routes
@@ -23,6 +24,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/cabanas', [CabanaController::class , 'index']);
     Route::get('/cabanas/{id}', [CabanaController::class , 'show']);
     Route::get('/cabanas/{id}/reviews', [ReviewController::class , 'index']);
+    Route::get('/recommendations', [RecommendationController::class, 'index']);
 
     // Availability
     Route::post('/cabanas/{id}/check-availability', [AvailabilityController::class , 'check']);
