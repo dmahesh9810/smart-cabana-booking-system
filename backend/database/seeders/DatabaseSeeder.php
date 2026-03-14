@@ -12,11 +12,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            RoleSeeder::class, // Preserving existing RoleSeeder just in case
+            RoleSeeder::class,
+            AmenitySeeder::class,
             UserSeeder::class,
             CabanaSeeder::class,
             BookingSeeder::class,
-            ReviewSeeder::class
+            // ReviewSeeder is handled within BookingSeeder now
         ]);
     }
 }

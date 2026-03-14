@@ -15,34 +15,45 @@ class BookingSeeder extends Seeder
      */
     public function run(): void
     {
-        $users = User::all(); // All generated users from UserSeeder are valid for bookings
-        $cabanas = Cabana::where('is_active', true)->get();
+        $users = User::whereHas('role', function($q) { $q->where('name', 'customer'); })->get();
+        $cabanas = Cabana::all();
 
         if ($users->isEmpty() || $cabanas->isEmpty()) {
-            return; // Seed cabanas and users first
+            return;
         }
 
-        for ($i = 0; $i < 20; $i++) {
-            $user = $users->random();
-            $cabana = $cabanas->random();
-            
-            // Random check-in date between 30 days ago and today
-            $startOffset = rand() % 30; // 0 to 29
-            $stayDuration = (rand() % 5) + 1; // 1 to 5 nights
+        Booking::factory()
+            ->count(40)
+            ->create([
+                'user_id' => fn() => $users->random()->id,
+                'cabana_id' => fn() => $cabanas->random()->id,
+            ])
+            ->each(function ($booking) {
+                // Calculate correct amount
+                $checkIn = Carbon::parse($booking->check_in);
+                $checkOut = Carbon::parse($booking->check_out);
+                $nights = $checkIn->diffInDays($checkOut);
+                if ($nights <= 0) $nights = 1;
+                
+                $booking->total_amount = $booking->cabana->price_per_night * $nights;
+                $booking->save();
 
-            $checkIn = Carbon::now()->subDays($startOffset);
-            $checkOut = (clone $checkIn)->addDays($stayDuration);
+                // Create payment
+                $status = ($booking->status === 'confirmed' || $booking->status === 'completed') ? 'paid' : 'pending';
+                \App\Models\Payment::factory()->create([
+                    'booking_id' => $booking->id,
+                    'amount' => $booking->total_amount,
+                    'payment_status' => $status,
+                ]);
 
-            Booking::create([
-                'booking_ref' => 'BKG-' . strtoupper(uniqid()),
-                'user_id' => $user->id,
-                'cabana_id' => $cabana->id,
-                'check_in' => $checkIn->format('Y-m-d'),
-                'check_out' => $checkOut->format('Y-m-d'),
-                'guests_count' => rand(1, $cabana->max_guests ?: 2),
-                'total_amount' => $cabana->price_per_night * $stayDuration,
-                'status' => 'confirmed',
-            ]);
-        }
+                // Create review for completed bookings
+                if ($booking->status === 'completed') {
+                    \App\Models\Review::factory()->create([
+                        'booking_id' => $booking->id,
+                        'user_id' => $booking->user_id,
+                        'cabana_id' => $booking->cabana_id,
+                    ]);
+                }
+            });
     }
 }

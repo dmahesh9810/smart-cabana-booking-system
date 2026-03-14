@@ -87,6 +87,13 @@
             :cabana-id="cabana.id"
             class="mt-6"
           />
+
+          <!-- Reviews Section -->
+          <ReviewList 
+            v-if="cabana"
+            :reviews="cabana.reviews" 
+            :average-rating="cabana.average_rating"
+          />
         </div>
 
         <!-- Right: Booking Panel -->
@@ -185,6 +192,7 @@ import { useCabanaStore } from '../store/cabanaStore';
 import { useBookingStore } from '../store/bookingStore';
 import { formatLKR, formatLKRShort, todayISO } from '../utils/currency';
 import CabanaAvailabilityCalendar from '../components/CabanaAvailabilityCalendar.vue';
+import ReviewList from '../components/ReviewList.vue';
 
 const route = useRoute();
 const router = useRouter();

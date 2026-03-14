@@ -13,31 +13,24 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        $users = [
-            ['name' => 'John Doe', 'email' => 'john@example.com'],
-            ['name' => 'Jane Smith', 'email' => 'jane@example.com'],
-            ['name' => 'Michael Johnson', 'email' => 'michael@example.com'],
-            ['name' => 'Emily Davis', 'email' => 'emily@example.com'],
-            ['name' => 'William Brown', 'email' => 'william@example.com'],
-            ['name' => 'Olivia Wilson', 'email' => 'olivia@example.com'],
-            ['name' => 'James Taylor', 'email' => 'james@example.com'],
-            ['name' => 'Sophia Anderson', 'email' => 'sophia@example.com'],
-            ['name' => 'Benjamin Thomas', 'email' => 'benjamin@example.com'],
-            ['name' => 'Isabella Jackson', 'email' => 'isabella@example.com'],
-        ];
+        $adminRole = \App\Models\Role::firstOrCreate(['name' => 'admin']);
+        $customerRole = \App\Models\Role::firstOrCreate(['name' => 'customer']);
 
-        $customerRoleId = \App\Models\Role::where('name', 'customer')->value('id') ?? 2;
+        // Create 1 Admin
+        User::firstOrCreate(
+            ['email' => 'admin@smartcabana.lk'],
+            [
+                'name' => 'System Admin',
+                'password' => Hash::make('admin123'),
+                'role_id' => $adminRole->id,
+                'email_verified_at' => now(),
+            ]
+        );
 
-        foreach ($users as $user) {
-            User::firstOrCreate(
-                ['email' => $user['email']],
-                [
-                    'name' => $user['name'],
-                    'password' => Hash::make('password'),
-                    'role_id' => $customerRoleId,
-                    'email_verified_at' => now(),
-                ]
-            );
-        }
+        // Create 20 Customers
+        User::factory()->count(20)->create([
+            'role_id' => $customerRole->id,
+            'password' => Hash::make('password'),
+        ]);
     }
 }

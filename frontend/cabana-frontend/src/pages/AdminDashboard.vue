@@ -34,7 +34,7 @@
       </div>
 
       <!-- Primary KPI Cards  -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
 
         <StatCard
           label="Total Revenue"
@@ -105,7 +105,7 @@
       </div>
 
       <!-- Highlight Row -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
         <!-- Most Booked Cabana -->
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 hover:shadow-md transition-shadow">

@@ -96,11 +96,19 @@
                 Pay Now
               </router-link>
               <router-link
-                :to="{ name: 'BookingDetails', params: { id: booking.id } }"
                 class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-colors"
               >
                 View Details
               </router-link>
+              
+              <!-- Review Action -->
+              <button
+                v-if="booking.status === 'completed' && !booking.has_review"
+                @click="openReviewModal(booking)"
+                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors"
+              >
+                Leave Review
+              </button>
             </div>
 
           </div>
@@ -118,6 +126,14 @@
       </div>
 
     </div>
+
+    <!-- Review Modal -->
+    <ReviewForm 
+      :is-open="isReviewModalOpen"
+      :booking="selectedBooking"
+      @close="isReviewModalOpen = false"
+      @success="bookingStore.fetchUserBookings()"
+    />
   </div>
 </template>
 
@@ -126,9 +142,19 @@ import { onMounted } from 'vue';
 import { useBookingStore } from '../store/bookingStore';
 import { formatLKR } from '../utils/currency';
 import RecommendedForYou from '../components/RecommendedForYou.vue';
+import ReviewForm from '../components/ReviewForm.vue';
+import { ref } from 'vue';
 
 const bookingStore = useBookingStore();
 const PLACEHOLDER = 'https://cf.bstatic.com/xdata/images/hotel/max1024x768/654424977.jpg?k=768eca1e486393ded0556fdd3f47e9b0fbd33770a37ac7b4d99cdb53ab3a955b&o=';
+
+const isReviewModalOpen = ref(false);
+const selectedBooking = ref(null);
+
+const openReviewModal = (booking) => {
+  selectedBooking.value = booking;
+  isReviewModalOpen.value = true;
+};
 
 onMounted(() => {
   bookingStore.fetchUserBookings();

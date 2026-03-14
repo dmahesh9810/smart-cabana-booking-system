@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Auth;
 
 use App\Models\Role;
 use App\Models\User;
@@ -31,13 +31,13 @@ class AuthFlowTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonStructure([
-            'success',
-            'message',
-            'data' => [
-                'user' => ['id', 'name', 'email', 'role_id'],
-                'token'
-            ]
-        ]);
+                'success',
+                'message',
+                'data' => [
+                    'user' => ['id', 'name', 'email', 'role_id'],
+                    'token'
+                ]
+            ]);
 
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com'
@@ -59,11 +59,11 @@ class AuthFlowTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-            'success' => true
-        ])
+                'success' => true
+            ])
             ->assertJsonStructure([
-            'data' => ['user', 'token']
-        ]);
+                'data' => ['user', 'token']
+            ]);
     }
 
     public function test_user_can_access_protected_route()
@@ -81,14 +81,14 @@ class AuthFlowTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-            'success' => true,
-            'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'email' => $user->email
+                'success' => true,
+                'data' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'email' => $user->email
+                    ]
                 ]
-            ]
-        ]);
+            ]);
     }
 
     public function test_user_can_logout()
@@ -106,9 +106,9 @@ class AuthFlowTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-            'success' => true,
-            'message' => 'Logged out successfully'
-        ]);
+                'success' => true,
+                'message' => 'Logged out successfully'
+            ]);
 
         // Assert token is deleted
         $this->assertDatabaseMissing('personal_access_tokens', [

@@ -1,17 +1,34 @@
 <template>
-  <div class="h-screen flex bg-slate-100 overflow-hidden font-sans">
+  <div class="h-screen flex bg-slate-100 overflow-hidden font-sans relative">
     
+    <!-- Mobile Sidebar Backdrop -->
+    <div 
+      v-if="isSidebarOpen" 
+      @click="isSidebarOpen = false"
+      class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden transition-opacity duration-300"
+    ></div>
+
     <!-- Sidebar -->
-    <div class="flex flex-col w-64 bg-slate-900 border-r border-slate-800 transition-width duration-300">
+    <aside 
+      class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-slate-900 border-r border-slate-800 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto"
+      :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    >
       
       <!-- Logo Branding -->
-      <div class="h-16 flex items-center justify-center bg-slate-900 border-b border-slate-800 px-4 shrink-0">
+      <div class="h-16 flex items-center justify-between bg-slate-900 border-b border-slate-800 px-6 shrink-0">
         <router-link to="/" class="text-white font-black text-xl tracking-tight flex items-center gap-2 hover:opacity-80 transition-opacity">
           <svg class="h-6 w-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
           </svg>
           Smart Cabana
         </router-link>
+        
+        <!-- Close button mobile -->
+        <button @click="isSidebarOpen = false" class="lg:hidden text-slate-400 hover:text-white transition-colors">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       <!-- Navigation Links -->
@@ -64,18 +81,43 @@
         </button>
       </div>
 
-    </div>
+    </aside>
 
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col w-0 overflow-hidden">
       
-      <!-- Top nav mobile (optional) / Breadcrumbs -->
-      <div class="h-16 flex items-center px-8 bg-white border-b border-slate-200 shrink-0">
-        <h2 class="text-xl font-bold text-slate-800 capitalize">{{ route.name.replace('Admin', '') }} Management</h2>
-      </div>
+      <!-- Top nav Header -->
+      <header class="h-16 flex items-center justify-between px-4 md:px-6 lg:px-8 bg-white border-b border-slate-200 shrink-0">
+        <div class="flex items-center gap-4">
+          <!-- Mobile Toggle -->
+          <button 
+            @click="isSidebarOpen = true"
+            class="p-2 -ml-2 text-slate-500 hover:text-indigo-600 lg:hidden transition-colors"
+          >
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          
+          <h2 class="text-lg md:text-xl font-bold text-slate-800 capitalize leading-none">
+            {{ route.name.replace('Admin', '') }} Management
+          </h2>
+        </div>
+
+        <div class="flex items-center gap-4">
+           <!-- Potential User info / Notifications -->
+           <div class="hidden sm:flex flex-col items-end">
+              <p class="text-xs font-bold text-slate-900 leading-tight">Admin User</p>
+              <p class="text-[10px] text-slate-400 font-medium tracking-wide">Administrator</p>
+           </div>
+           <div class="h-9 w-9 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-xs ring-2 ring-indigo-50">
+             AD
+           </div>
+        </div>
+      </header>
 
       <!-- Dynamic Page Content -->
-      <main class="flex-1 relative overflow-y-auto focus:outline-none p-8">
+      <main class="flex-1 relative overflow-y-auto focus:outline-none p-4 md:p-6 lg:p-8">
         <router-view></router-view>
       </main>
 
@@ -85,12 +127,20 @@
 </template>
 
 <script setup>
+import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../store/authStore';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+
+const isSidebarOpen = ref(false);
+
+// Auto-close sidebar on route change (for mobile)
+watch(() => route.path, () => {
+    isSidebarOpen.value = false;
+});
 
 const handleLogout = async () => {
     await authStore.logout();

@@ -37,8 +37,14 @@ return [
 
     'payhere' => [
         'merchant_id' => env('PAYHERE_MERCHANT_ID'),
-        'secret' => env('PAYHERE_SECRET'),
-        'sandbox' => env('PAYHERE_SANDBOX', true),
+        'secret'      => env('PAYHERE_SECRET'),
+        'sandbox'     => env('PAYHERE_SANDBOX', true),
+    ],
+
+    'twilio' => [
+        'sid'   => env('TWILIO_SID'),
+        'token' => env('TWILIO_TOKEN'),
+        'from'  => env('TWILIO_FROM'), // e.g. +15551234567
     ],
 
 ];

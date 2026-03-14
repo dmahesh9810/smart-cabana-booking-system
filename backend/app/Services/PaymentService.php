@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentService
 {
+    public function __construct(private NotificationService $notificationService)
+    {
+        //
+    }
     /**
      * Initiates a completely new PayHere Payment request.
      */
@@ -163,9 +167,12 @@ class PaymentService
 
                 BookingLog::create([
                     'booking_id' => $booking->id,
-                    'action' => 'payment_received',
-                    'notes' => "Webhook confirmed Payment ID: {$paymentId}"
+                    'action'     => 'payment_received',
+                    'notes'      => "Webhook confirmed Payment ID: {$paymentId}"
                 ]);
+
+                // Store IDs so we can send notifications outside the transaction
+                $confirmedBookingId = $booking->id;
 
             } elseif ($statusCode < 0) {
                 // Handle failures or cancellations identically
@@ -177,5 +184,15 @@ class PaymentService
                 }
             }
         });
+
+        // Fire notifications OUTSIDE the DB transaction to avoid delaying the commit
+        if (isset($confirmedBookingId)) {
+            $freshBooking = Booking::with(['user', 'cabana', 'payment'])->find($confirmedBookingId);
+            if ($freshBooking) {
+                $this->notificationService->sendBookingConfirmation($freshBooking);
+                $this->notificationService->sendPaymentReceipt($freshBooking);
+                $this->notificationService->sendSmsConfirmation($freshBooking);
+            }
+        }
     }
 }
