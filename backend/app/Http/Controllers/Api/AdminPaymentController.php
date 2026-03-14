@@ -7,8 +7,12 @@ use App\Http\Resources\AdminPaymentResource;
 use App\Services\SystemActivityService;
 use Illuminate\Http\Request;
 
+use App\Traits\ApiResponse;
+
 class AdminPaymentController extends Controller
 {
+    use ApiResponse;
+
     private \App\Services\SystemActivityService $dashboardService;
 
     public function __construct(SystemActivityService $dashboardService)
@@ -22,6 +26,6 @@ class AdminPaymentController extends Controller
     public function index()
     {
         $payments = $this->dashboardService->getPayments();
-        return AdminPaymentResource::collection($payments);
+        return $this->successResponse(AdminPaymentResource::collection($payments), 'Payments retrieved successfully');
     }
 }

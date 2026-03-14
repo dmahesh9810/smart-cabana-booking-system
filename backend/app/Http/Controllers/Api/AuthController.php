@@ -11,8 +11,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
+use App\Traits\ApiResponse;
+
 class AuthController extends Controller
 {
+    use ApiResponse;
+
     public function register(RegisterRequest $request)
     {
         $role = Role::where('name', 'customer')->first();
@@ -27,14 +31,10 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'success' => true,
-            'message' => 'User registered successfully',
-            'data' => [
-                'user' => $user->load('role'),
-                'token' => $token
-            ]
-        ], 201);
+        return $this->successResponse([
+            'user' => $user->load('role'),
+            'token' => $token
+        ], 'User registered successfully', 201);
     }
 
     public function login(LoginRequest $request)
@@ -42,24 +42,21 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid login credentials',
-                'data' => null
-            ], 401);
+            return $this->errorResponse('Invalid login credentials', 401);
+        }
+
+        if ($user->email_verified_at === null) {
+            return $this->errorResponse('Please verify your email address before logging in.', 403);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful',
-            'data' => [
-                'user' => $user->load('role'),
-                'token' => $token
-            ]
-        ], 200);
+        return $this->successResponse([
+            'user' => $user->load('role'),
+            'token' => $token
+        ], 'Login successful');
     }
+
 
     public function logout(Request $request)
     {

@@ -24,10 +24,10 @@ class CheckRole
             ], 401);
         }
 
-        $userRoles = $request->user()->roles->pluck('name')->toArray();
+        $userRoleName = $request->user()->role?->name ?? '';
 
         foreach ($roles as $role) {
-            if (in_array($role, $userRoles)) {
+            if ($role === $userRoleName) {
                 return $next($request);
             }
         }

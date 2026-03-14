@@ -3,16 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\AdminBookingResource;
-use App\Http\Resources\AdminPaymentResource;
-use App\Services\AdminDashboardService;
+use App\Services\SystemActivityService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class AdminDashboardController extends Controller
 {
-    private \App\Services\SystemActivityService $dashboardService;
+    use ApiResponse;
 
-    public function __construct(\App\Services\SystemActivityService $dashboardService)
+    private SystemActivityService $dashboardService;
+
+    public function __construct(SystemActivityService $dashboardService)
     {
         $this->dashboardService = $dashboardService;
     }
@@ -24,12 +26,10 @@ class AdminDashboardController extends Controller
      */
     public function stats(): JsonResponse
     {
-        $stats = $this->dashboardService->getStats();
+        $stats = Cache::remember('admin_dashboard_stats', 300, function () {
+            return $this->dashboardService->getStats();
+        });
 
-        return response()->json([
-            'success' => true,
-            'data' => $stats,
-        ]);
+        return $this->successResponse($stats, 'Dashboard statistics retrieved successfully');
     }
-
 }

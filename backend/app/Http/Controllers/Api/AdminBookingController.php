@@ -8,9 +8,12 @@ use App\Models\Booking;
 use App\Services\SystemActivityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponse;
+use Illuminate\Support\Facades\Cache;
 
 class AdminBookingController extends Controller
 {
+    use ApiResponse;
     private SystemActivityService $dashboardService;
     private \App\Services\CommissionService $commissionService;
     private \App\Services\NotificationService $notificationService;
@@ -41,15 +44,11 @@ class AdminBookingController extends Controller
 
         $bookings = $query->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data'    => AdminBookingResource::collection($bookings),
-            'meta'    => [
-                'current_page' => $bookings->currentPage(),
-                'last_page'    => $bookings->lastPage(),
-                'per_page'     => $bookings->perPage(),
-                'total'        => $bookings->total(),
-            ],
+        return $this->successResponse(AdminBookingResource::collection($bookings), 'Bookings retrieved successfully', 200, [
+            'current_page' => $bookings->currentPage(),
+            'last_page'    => $bookings->lastPage(),
+            'per_page'     => $bookings->perPage(),
+            'total'        => $bookings->total(),
         ]);
     }
 
@@ -60,10 +59,7 @@ class AdminBookingController extends Controller
     {
         $booking = Booking::with(['user', 'cabana', 'payment'])->findOrFail($id);
 
-        return response()->json([
-            'success' => true,
-            'data'    => new AdminBookingResource($booking),
-        ]);
+        return $this->successResponse(new AdminBookingResource($booking), 'Booking details retrieved successfully');
     }
 
     /**
@@ -80,6 +76,9 @@ class AdminBookingController extends Controller
         $booking->status = $request->input('status');
         $booking->save();
 
+        // Clear dashboard cache
+        Cache::forget('admin_dashboard_stats');
+
         // Record commission if transition to completed
         if ($booking->status === 'completed' && $oldStatus !== 'completed') {
             $this->commissionService->recordCommission($booking);
@@ -92,11 +91,8 @@ class AdminBookingController extends Controller
             $this->notificationService->sendBookingCancelled($booking);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Booking status updated to ' . $booking->status,
-            'data'    => new AdminBookingResource($booking),
-        ]);
+        $message = 'Booking status updated to ' . $booking->status;
+        return $this->successResponse(new AdminBookingResource($booking), $message);
     }
 
     /**
@@ -107,9 +103,9 @@ class AdminBookingController extends Controller
         $booking = Booking::findOrFail($id);
         $booking->forceDelete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Booking deleted successfully.',
-        ]);
+        // Clear dashboard cache
+        Cache::forget('admin_dashboard_stats');
+
+        return $this->successResponse(null, 'Booking deleted successfully');
     }
 }

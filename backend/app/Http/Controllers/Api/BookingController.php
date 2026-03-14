@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreBookingRequest;
+use App\Http\Requests\CreateBookingRequest;
 use App\Http\Resources\BookingResource;
 use App\Models\Booking;
 use App\Services\BookingService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BookingController extends Controller
 {
+    use ApiResponse;
+
     protected $bookingService;
 
     public function __construct(BookingService $bookingService)
@@ -25,28 +28,25 @@ class BookingController extends Controller
     public function index(Request $request)
     {
         $bookings = Booking::with('cabana')->where('user_id', $request->user()->id)->latest()->get();
-        return BookingResource::collection($bookings);
+        return $this->successResponse(BookingResource::collection($bookings), 'Bookings retrieved successfully');
     }
 
     /**
      * Store a newly created booking.
      */
-    public function store(StoreBookingRequest $request): JsonResponse
+    public function store(CreateBookingRequest $request): JsonResponse
     {
         try {
             $booking = $this->bookingService->createBooking($request->user()->id, $request->validated());
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Booking created successfully',
-                'data' => new BookingResource($booking->load('cabana'))
-            ], 201);
+            return $this->successResponse(
+                new BookingResource($booking->load('cabana')),
+                'Booking created successfully',
+                201
+            );
         }
         catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 422);
+            return $this->errorResponse($e->getMessage(), 422);
         }
     }
 
@@ -60,6 +60,6 @@ class BookingController extends Controller
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
-        return new BookingResource($booking);
+        return $this->successResponse(new BookingResource($booking), 'Booking details retrieved successfully');
     }
 }

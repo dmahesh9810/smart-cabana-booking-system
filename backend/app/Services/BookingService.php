@@ -7,22 +7,26 @@ use App\Models\Booking;
 use App\Models\BookingLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Mail\BookingCreatedMail;
+use App\Services\NotificationService;
 
 class BookingService
 {
     protected $availabilityService;
+    protected $notificationService;
 
-    public function __construct(AvailabilityService $availabilityService)
-    {
+    public function __construct(
+        AvailabilityService $availabilityService,
+        NotificationService $notificationService
+    ) {
         $this->availabilityService = $availabilityService;
+        $this->notificationService = $notificationService;
     }
 
     public function createBooking(int $userId, array $data): Booking
     {
-        return DB::transaction(function () use ($userId, $data) {
+        // Capture the booking returned by the transaction (not return it directly)
+        $booking = DB::transaction(function () use ($userId, $data) {
             $checkIn = Carbon::parse($data['check_in'])->startOfDay();
             $checkOut = Carbon::parse($data['check_out'])->startOfDay();
 
@@ -63,12 +67,11 @@ class BookingService
             return $booking;
         });
 
-        // Send email notification outside the transaction
-        try {
-            Mail::to($booking->user->email)->send(new BookingCreatedMail($booking));
-        } catch (\Exception $e) {
-            \Log::error('Failed to send booking created email: ' . $e->getMessage());
-        }
+        // Send booking created notification AFTER the transaction commits successfully
+        $this->notificationService->sendBookingCreated($booking->load(['user', 'cabana']));
+
+        // Clear dashboard cache on new booking
+        \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
 
         return $booking;
     }

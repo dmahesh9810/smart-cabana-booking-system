@@ -26,12 +26,18 @@ class RecommendationController extends Controller
         if ($popularCabanaIds->isEmpty()) {
             $cabanas = Cabana::where('is_active', true)->with('images')->inRandomOrder()->take(3)->get();
         } else {
-            $idsSql  = $popularCabanaIds->implode(',');
-            $cabanas = Cabana::whereIn('id', $popularCabanaIds)
+            // Fetch all matching cabanas, then re-sort in PHP to preserve score order.
+            // This is DB-agnostic: works on both SQLite (dev) and MySQL (production).
+            $unsorted = Cabana::whereIn('id', $popularCabanaIds)
                 ->where('is_active', true)
                 ->with('images')
-                ->orderByRaw("FIND_IN_SET(id, '{$idsSql}')")
                 ->get();
+
+            // Restore popularity order by mapping over the ordered ID list
+            $cabanas = collect($popularCabanaIds)
+                ->map(fn($id) => $unsorted->firstWhere('id', $id))
+                ->filter()
+                ->values();
         }
 
         return response()->json([
@@ -158,13 +164,18 @@ class RecommendationController extends Controller
             ]);
         }
 
-        // Fetch full Eloquent models, preserving score order
-        $idsSql  = implode(',', $topIds);
-        $cabanas = Cabana::whereIn('id', $topIds)
+        // Fetch full Eloquent models, then re-sort in PHP to preserve score order.
+        // This is DB-agnostic: works on both SQLite (dev) and MySQL (production).
+        $unsorted = Cabana::whereIn('id', $topIds)
             ->where('is_active', true)
             ->with(['images', 'reviews'])
-            ->orderByRaw("FIND_IN_SET(id, '{$idsSql}')")
             ->get();
+
+        // Restore score order by mapping over the pre-sorted $topIds array
+        $cabanas = collect($topIds)
+            ->map(fn($id) => $unsorted->firstWhere('id', $id))
+            ->filter()
+            ->values();
 
         return response()->json([
             'recommended_cabanas' => $cabanas->map(function ($cabana) use ($scores) {

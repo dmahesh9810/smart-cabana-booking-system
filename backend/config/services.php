@@ -39,6 +39,7 @@ return [
         'merchant_id' => env('PAYHERE_MERCHANT_ID'),
         'secret'      => env('PAYHERE_SECRET'),
         'sandbox'     => env('PAYHERE_SANDBOX', true),
+        'webhook_ips' => env('PAYHERE_WEBHOOK_IPS', '103.3.144.0/22,103.3.148.0/24'),
     ],
 
     'twilio' => [

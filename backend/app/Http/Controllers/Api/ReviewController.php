@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreReviewRequest;
+use App\Http\Requests\CreateReviewRequest;
 use App\Http\Resources\ReviewResource;
 use App\Models\Cabana;
 use App\Services\ReviewService;
+use App\Traits\ApiResponse;
 
 class ReviewController extends Controller
 {
+    use ApiResponse;
+
     private ReviewService $reviewService;
 
     public function __construct(ReviewService $reviewService)
@@ -26,13 +29,13 @@ class ReviewController extends Controller
         // Eager load user to avoid N+1 when formatting reviews
         $reviews = $cabana->reviews()->with('user')->latest()->get();
 
-        return ReviewResource::collection($reviews);
+        return $this->successResponse(ReviewResource::collection($reviews), 'Reviews retrieved successfully');
     }
 
     /**
      * Store a newly created review for a booking.
      */
-    public function store(StoreReviewRequest $request, $bookingId)
+    public function store(CreateReviewRequest $request, $bookingId)
     {
         $user = $request->user();
 
@@ -40,9 +43,6 @@ class ReviewController extends Controller
 
         $review = $this->reviewService->createReview($booking, $request->validated());
 
-        return response()->json([
-            'message' => 'Review submitted successfully',
-            'data' => new ReviewResource($review->load('user'))
-        ], 201);
+        return $this->successResponse(new ReviewResource($review->load('user')), 'Review submitted successfully', 201);
     }
 }

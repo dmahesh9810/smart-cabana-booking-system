@@ -3,17 +3,21 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreCabanaRequest;
+use App\Http\Requests\CreateCabanaRequest;
 use App\Http\Requests\UpdateCabanaRequest;
 use App\Http\Requests\UploadCabanaImageRequest;
 use App\Http\Requests\SyncCabanaAmenitiesRequest;
 use App\Http\Resources\CabanaResource;
 use App\Services\CabanaService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class AdminCabanaController extends Controller
 {
+    use ApiResponse;
+
     protected $cabanaService;
 
     public function __construct(CabanaService $cabanaService)
@@ -27,16 +31,13 @@ class AdminCabanaController extends Controller
     public function index(): JsonResponse
     {
         $cabanas = $this->cabanaService->getAllCabanas(true);
-        return response()->json([
-            'success' => true,
-            'data' => CabanaResource::collection($cabanas)
-        ]);
+        return $this->successResponse(CabanaResource::collection($cabanas), 'Cabanas retrieved successfully');
     }
 
     /**
      * Store a newly created cabana, with optional inline image upload.
      */
-    public function store(StoreCabanaRequest $request): JsonResponse
+    public function store(CreateCabanaRequest $request): JsonResponse
     {
         $data = $request->validated();
 
@@ -45,6 +46,7 @@ class AdminCabanaController extends Controller
         unset($data['image']);
 
         $cabana = $this->cabanaService->createCabana($data);
+        Cache::forget('admin_dashboard_stats');
 
         // Upload primary image if provided
         if ($imageFile) {
@@ -52,11 +54,7 @@ class AdminCabanaController extends Controller
             $cabana->load('images', 'primaryImage');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cabana created successfully',
-            'data' => new CabanaResource($cabana)
-        ], 201);
+        return $this->successResponse(new CabanaResource($cabana), 'Cabana created successfully', 201);
     }
 
     /**
@@ -66,10 +64,7 @@ class AdminCabanaController extends Controller
     {
         $cabana = $this->cabanaService->getCabanaById($id);
 
-        return response()->json([
-            'success' => true,
-            'data' => new CabanaResource($cabana)
-        ]);
+        return $this->successResponse(new CabanaResource($cabana), 'Cabana details retrieved successfully');
     }
 
     /**
@@ -85,6 +80,7 @@ class AdminCabanaController extends Controller
         unset($data['image']);
 
         $updatedCabana = $this->cabanaService->updateCabana($cabana, $data);
+        Cache::forget('admin_dashboard_stats');
 
         // Replace primary image if a new file was provided
         if ($imageFile) {
@@ -92,11 +88,7 @@ class AdminCabanaController extends Controller
             $updatedCabana->load('images', 'primaryImage');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cabana updated successfully',
-            'data' => new CabanaResource($updatedCabana)
-        ]);
+        return $this->successResponse(new CabanaResource($updatedCabana), 'Cabana updated successfully');
     }
 
     /**
@@ -106,11 +98,9 @@ class AdminCabanaController extends Controller
     {
         $cabana = $this->cabanaService->getCabanaById($id);
         $this->cabanaService->deleteCabana($cabana);
+        Cache::forget('admin_dashboard_stats');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cabana deleted successfully'
-        ]);
+        return $this->successResponse(null, 'Cabana deleted successfully');
     }
 
     /**
@@ -120,12 +110,10 @@ class AdminCabanaController extends Controller
     {
         $cabana = $this->cabanaService->getCabanaById($id);
         $updated = $this->cabanaService->toggleStatus($cabana);
+        Cache::forget('admin_dashboard_stats');
 
-        return response()->json([
-            'success' => true,
-            'message' => $updated->is_active ? 'Cabana activated successfully' : 'Cabana deactivated successfully',
-            'data' => new CabanaResource($updated)
-        ]);
+        $message = $updated->is_active ? 'Cabana activated successfully' : 'Cabana deactivated successfully';
+        return $this->successResponse(new CabanaResource($updated), $message);
     }
 
     /**
@@ -137,12 +125,9 @@ class AdminCabanaController extends Controller
         $isPrimary = $request->boolean('is_primary', false);
 
         $image = $this->cabanaService->uploadImage($cabana, $request->file('image'), $isPrimary);
+        Cache::forget('admin_dashboard_stats');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Image uploaded successfully',
-            'data' => $image
-        ], 201);
+        return $this->successResponse($image, 'Image uploaded successfully', 201);
     }
 
     /**
@@ -151,11 +136,9 @@ class AdminCabanaController extends Controller
     public function deleteImage(string $id): JsonResponse
     {
         $this->cabanaService->deleteImage($id);
+        Cache::forget('admin_dashboard_stats');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Image deleted successfully'
-        ]);
+        return $this->successResponse(null, 'Image deleted successfully');
     }
 
     /**
@@ -166,10 +149,6 @@ class AdminCabanaController extends Controller
         $cabana = $this->cabanaService->getCabanaById($id);
         $this->cabanaService->syncAmenities($cabana, $request->input('amenities', []));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Amenities synced successfully',
-            'data' => new CabanaResource($cabana)
-        ]);
+        return $this->successResponse(new CabanaResource($cabana), 'Amenities synced successfully');
     }
 }

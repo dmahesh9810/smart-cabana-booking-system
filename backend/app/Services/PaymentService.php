@@ -19,7 +19,7 @@ class PaymentService
      */
     public function initiatePayment(int $bookingId, int $userId): array
     {
-        $booking = Booking::where('id', $bookingId)
+        $booking = Booking::with('user')->where('id', $bookingId)
             ->where('user_id', $userId)
             ->firstOrFail();
 
@@ -61,7 +61,7 @@ class PaymentService
 
         // Return exact PayHere payload matching the JS SDK
         return [
-            'sandbox' => true,
+            'sandbox' => (bool) config('services.payhere.sandbox'),
             'merchant_id' => $merchantId,
             'return_url' => env('FRONTEND_URL', 'http://localhost:5173') . '/booking/success',
             'cancel_url' => env('FRONTEND_URL', 'http://localhost:5173') . '/booking/cancel',
@@ -87,6 +87,13 @@ class PaymentService
     public function handleWebhook(array $payload): void
     {
         Log::info('PayHere Webhook Received:', $payload);
+
+        // Security Step: IP Whitelist Validation
+        $clientIp = request()->ip();
+        if (!$this->validateWebhookIp($clientIp)) {
+            Log::error("PayHere Webhook: Rejected from unauthorised IP: {$clientIp}", ['payload' => $payload]);
+            throw new \Exception('Webhook from unauthorised IP address');
+        }
 
         $merchantId = $payload['merchant_id'] ?? '';
         $orderId = $payload['order_id'] ?? '';
@@ -122,8 +129,10 @@ class PaymentService
             throw new \Exception('Invalid Webhook Signature');
         }
 
+        $confirmedBookingId = null;
+
         // DB Transaction for safety
-        DB::transaction(function () use ($orderId, $payhereAmount, $paymentId, $statusCode) {
+        DB::transaction(function () use ($orderId, $payhereAmount, $paymentId, $statusCode, &$confirmedBookingId) {
             $payment = Payment::where('order_id', $orderId)->lockForUpdate()->first();
             
             if (!$payment) {
@@ -171,7 +180,7 @@ class PaymentService
                     'notes'      => "Webhook confirmed Payment ID: {$paymentId}"
                 ]);
 
-                // Store IDs so we can send notifications outside the transaction
+                // Set ID so we can send notifications outside the transaction
                 $confirmedBookingId = $booking->id;
 
             } elseif ($statusCode < 0) {
@@ -186,12 +195,66 @@ class PaymentService
         });
 
         // Fire notifications OUTSIDE the DB transaction to avoid delaying the commit
-        if (isset($confirmedBookingId)) {
+        if ($confirmedBookingId) {
             $freshBooking = Booking::with(['user', 'cabana', 'payment'])->find($confirmedBookingId);
             if ($freshBooking) {
+                // Clear dashboard cache when payment is confirmed
+                \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+
                 $this->notificationService->sendPaymentSuccess($freshBooking);
-                $this->notificationService->sendSmsConfirmation($freshBooking);
+                
+                // Dispatch queued SMS job instead of sending synchronously
+                \App\Jobs\SendSmsNotificationJob::dispatch($freshBooking, 'confirmation');
             }
         }
+    }
+
+    /**
+     * Validate sender IP against allowed CIDR ranges.
+     */
+    private function validateWebhookIp(?string $ip): bool
+    {
+        if (!$ip) return false;
+
+        // Skip validation in local environment if needed, but for now we follow strict requirements
+        if (app()->environment('local') && env('PAYHERE_BYPASS_IP_CHECK', false)) {
+            return true;
+        }
+
+        $allowedRanges = array_filter(
+            explode(',', config('services.payhere.webhook_ips', ''))
+        );
+
+        if (empty($allowedRanges)) {
+            Log::warning('PayHere: No IP whitelist configured — skipping IP check');
+            return true;
+        }
+
+        foreach ($allowedRanges as $range) {
+            if ($this->ipInRange($ip, trim($range))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if an IP address is within a CIDR range.
+     */
+    private function ipInRange(string $ip, string $range): bool
+    {
+        if (strpos($range, '/') === false) {
+            return $ip === $range;
+        }
+
+        list($range, $netmask) = explode('/', $range, 2);
+        
+        $rangeDecimal = ip2long($range);
+        $ipDecimal = ip2long($ip);
+        $wildcardDecimal = pow(2, (32 - $netmask)) - 1;
+        $netmaskDecimal = ~ $wildcardDecimal;
+        
+        return (($ipDecimal & $netmaskDecimal) == ($rangeDecimal & $netmaskDecimal));
     }
 }
