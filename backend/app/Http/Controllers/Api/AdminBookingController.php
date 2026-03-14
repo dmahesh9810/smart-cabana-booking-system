@@ -12,10 +12,14 @@ use Illuminate\Http\Request;
 class AdminBookingController extends Controller
 {
     private SystemActivityService $dashboardService;
+    private \App\Services\CommissionService $commissionService;
 
-    public function __construct(SystemActivityService $dashboardService)
-    {
+    public function __construct(
+        SystemActivityService $dashboardService,
+        \App\Services\CommissionService $commissionService
+    ) {
         $this->dashboardService = $dashboardService;
+        $this->commissionService = $commissionService;
     }
 
     /**
@@ -69,8 +73,14 @@ class AdminBookingController extends Controller
         ]);
 
         $booking = Booking::with(['user', 'cabana', 'payment'])->findOrFail($id);
+        $oldStatus = $booking->status;
         $booking->status = $request->input('status');
         $booking->save();
+
+        // Record commission if transition to completed
+        if ($booking->status === 'completed' && $oldStatus !== 'completed') {
+            $this->commissionService->recordCommission($booking);
+        }
 
         return response()->json([
             'success' => true,

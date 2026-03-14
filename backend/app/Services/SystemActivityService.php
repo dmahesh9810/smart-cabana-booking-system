@@ -101,6 +101,9 @@ class SystemActivityService
             'most_booked_cabana'    => $mostBookedCabana,
             'top_rated_cabana'      => $topRatedCabana,
 
+            // Financial Split Statistics
+            'commission_stats'      => (new \App\Services\CommissionService())->getAnalytics(),
+
             // Chart series (last 6 months)
             'bookings_per_month'    => $bookingsPerMonth,
             'revenue_per_month'     => $revenuePerMonth,
