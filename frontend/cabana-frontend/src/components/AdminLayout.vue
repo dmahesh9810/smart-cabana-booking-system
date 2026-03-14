@@ -68,6 +68,15 @@
             Payments
           </router-link>
 
+          <router-link :to="{ name: 'AdminReports' }" class="group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all"
+             :class="route.name === 'AdminReports' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'">
+            <svg class="mr-3 h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m32-2a4 4 0 00-4-4h-5a4 4 0 00-4 4v2m-1-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            Reports
+          </router-link>
+
         </nav>
       </div>
 
@@ -107,11 +116,11 @@
         <div class="flex items-center gap-4">
            <!-- Potential User info / Notifications -->
            <div class="hidden sm:flex flex-col items-end">
-              <p class="text-xs font-bold text-slate-900 leading-tight">Admin User</p>
-              <p class="text-[10px] text-slate-400 font-medium tracking-wide">Administrator</p>
+              <p class="text-xs font-bold text-slate-900 leading-tight">{{ authStore.user?.name || 'User' }}</p>
+              <p class="text-[10px] text-slate-400 font-medium tracking-wide capitalize">{{ authStore.user?.role?.name || 'Staff' }}</p>
            </div>
            <div class="h-9 w-9 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-xs ring-2 ring-indigo-50">
-             AD
+             {{ authStore.user?.name?.substring(0, 2).toUpperCase() || 'US' }}
            </div>
         </div>
       </header>

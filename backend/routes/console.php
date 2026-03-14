@@ -8,5 +8,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('app:cancel-unpaid-bookings')->everyMinute();
+Schedule::job(new \App\Jobs\ExpirePendingBookingsJob)->everyFiveMinutes();
 Schedule::command('notifications:send-reminders')->dailyAt('08:00');
+Schedule::command('backup:run --only-db')->daily();
+Schedule::command('backup:clean')->daily();

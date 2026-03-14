@@ -189,8 +189,7 @@ class PaymentService
         if (isset($confirmedBookingId)) {
             $freshBooking = Booking::with(['user', 'cabana', 'payment'])->find($confirmedBookingId);
             if ($freshBooking) {
-                $this->notificationService->sendBookingConfirmation($freshBooking);
-                $this->notificationService->sendPaymentReceipt($freshBooking);
+                $this->notificationService->sendPaymentSuccess($freshBooking);
                 $this->notificationService->sendSmsConfirmation($freshBooking);
             }
         }

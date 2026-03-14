@@ -7,7 +7,9 @@ use App\Models\Booking;
 use App\Models\BookingLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use App\Mail\BookingCreatedMail;
 
 class BookingService
 {
@@ -60,6 +62,15 @@ class BookingService
 
             return $booking;
         });
+
+        // Send email notification outside the transaction
+        try {
+            Mail::to($booking->user->email)->send(new BookingCreatedMail($booking));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send booking created email: ' . $e->getMessage());
+        }
+
+        return $booking;
     }
 
     private function generateBookingReference(): string

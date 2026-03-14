@@ -13,13 +13,16 @@ class AdminBookingController extends Controller
 {
     private SystemActivityService $dashboardService;
     private \App\Services\CommissionService $commissionService;
+    private \App\Services\NotificationService $notificationService;
 
     public function __construct(
         SystemActivityService $dashboardService,
-        \App\Services\CommissionService $commissionService
+        \App\Services\CommissionService $commissionService,
+        \App\Services\NotificationService $notificationService
     ) {
         $this->dashboardService = $dashboardService;
         $this->commissionService = $commissionService;
+        $this->notificationService = $notificationService;
     }
 
     /**
@@ -80,6 +83,13 @@ class AdminBookingController extends Controller
         // Record commission if transition to completed
         if ($booking->status === 'completed' && $oldStatus !== 'completed') {
             $this->commissionService->recordCommission($booking);
+        }
+
+        // Trigger Emails
+        if ($booking->status === 'confirmed' && $oldStatus !== 'confirmed') {
+            $this->notificationService->sendBookingConfirmed($booking);
+        } elseif ($booking->status === 'cancelled' && $oldStatus !== 'cancelled') {
+            $this->notificationService->sendBookingCancelled($booking);
         }
 
         return response()->json([

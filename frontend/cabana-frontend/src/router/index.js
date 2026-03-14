@@ -20,6 +20,7 @@ import AdminDashboard from '../pages/AdminDashboard.vue'
 import AdminCabanas from '../pages/AdminCabanas.vue'
 import AdminBookings from '../pages/AdminBookings.vue'
 import AdminPayments from '../pages/AdminPayments.vue'
+import AdminReports from '../pages/AdminReports.vue'
 
 const routes = [
     // --- User Facing Routes ---
@@ -49,6 +50,7 @@ const routes = [
             { path: 'cabanas', component: AdminCabanas, name: 'AdminCabanas' },
             { path: 'bookings', component: AdminBookings, name: 'AdminBookings' },
             { path: 'payments', component: AdminPayments, name: 'AdminPayments' },
+            { path: 'reports', component: AdminReports, name: 'AdminReports' },
         ]
     },
 ]

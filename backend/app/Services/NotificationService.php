@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
-use App\Mail\BookingConfirmationMail;
+use App\Mail\BookingCreatedMail;
+use App\Mail\PaymentSuccessMail;
+use App\Mail\BookingConfirmedMail;
+use App\Mail\BookingCancelledMail;
 use App\Mail\BookingReminderMail;
-use App\Mail\PaymentReceiptMail;
 use App\Models\Booking;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -14,44 +16,74 @@ class NotificationService
     // ── Email Notifications ────────────────────────────────────────────
 
     /**
-     * Send a booking confirmation email to the guest.
+     * Send email when a booking is created.
      */
-    public function sendBookingConfirmation(Booking $booking): void
+    public function sendBookingCreated(Booking $booking): void
     {
         $this->ensureRelations($booking);
-
         $email = $booking->user?->email;
-        if (!$email) {
-            Log::warning("NotificationService: No email for booking {$booking->booking_ref}");
-            return;
-        }
+
+        if (!$email) return;
 
         try {
-            Mail::to($email)->send(new BookingConfirmationMail($booking));
-            Log::info("Booking confirmation sent to {$email} for {$booking->booking_ref}");
+            Mail::to($email)->send(new BookingCreatedMail($booking));
+            Log::info("Booking created email sent to {$email}");
         } catch (\Throwable $e) {
-            Log::error("Failed to send booking confirmation for {$booking->booking_ref}: " . $e->getMessage());
+            Log::error("Failed to send booking created email: " . $e->getMessage());
         }
     }
 
     /**
-     * Send a payment receipt email after successful payment.
+     * Send email when payment is successful.
      */
-    public function sendPaymentReceipt(Booking $booking): void
+    public function sendPaymentSuccess(Booking $booking): void
     {
         $this->ensureRelations($booking);
-
         $email = $booking->user?->email;
-        if (!$email) {
-            Log::warning("NotificationService: No email for booking {$booking->booking_ref}");
-            return;
-        }
+
+        if (!$email) return;
 
         try {
-            Mail::to($email)->send(new PaymentReceiptMail($booking));
-            Log::info("Payment receipt sent to {$email} for {$booking->booking_ref}");
+            Mail::to($email)->send(new PaymentSuccessMail($booking));
+            Log::info("Payment success email sent to {$email}");
         } catch (\Throwable $e) {
-            Log::error("Failed to send payment receipt for {$booking->booking_ref}: " . $e->getMessage());
+            Log::error("Failed to send payment success email: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send email when booking is confirmed by admin.
+     */
+    public function sendBookingConfirmed(Booking $booking): void
+    {
+        $this->ensureRelations($booking);
+        $email = $booking->user?->email;
+
+        if (!$email) return;
+
+        try {
+            Mail::to($email)->send(new BookingConfirmedMail($booking));
+            Log::info("Booking confirmed email sent to {$email}");
+        } catch (\Throwable $e) {
+            Log::error("Failed to send booking confirmed email: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send email when booking is cancelled.
+     */
+    public function sendBookingCancelled(Booking $booking): void
+    {
+        $this->ensureRelations($booking);
+        $email = $booking->user?->email;
+
+        if (!$email) return;
+
+        try {
+            Mail::to($email)->send(new BookingCancelledMail($booking));
+            Log::info("Booking cancelled email sent to {$email}");
+        } catch (\Throwable $e) {
+            Log::error("Failed to send booking cancelled email: " . $e->getMessage());
         }
     }
 

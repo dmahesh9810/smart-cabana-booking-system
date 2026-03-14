@@ -53,12 +53,18 @@ Route::prefix('v1')->group(function () {
         // Public Webhook for Payment
         Route::post('/payments/payhere-webhook', [PaymentController::class , 'webhook']);
 
-        // Protected Admin Routes
-        Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->group(function () {
-            Route::apiResource('cabanas', AdminCabanaController::class);
+        // Protected Management Routes (Admin & Staff)
+        Route::middleware(['auth:sanctum', 'role:admin,staff'])->prefix('admin')->group(function () {
+            // Cabanas
+            Route::get('/cabanas', [AdminCabanaController::class, 'index']);
+            Route::get('/cabanas/{id}', [AdminCabanaController::class, 'show']);
+            Route::post('/cabanas', [AdminCabanaController::class, 'store']);
+            Route::put('/cabanas/{id}', [AdminCabanaController::class, 'update']);
+            Route::delete('/cabanas/{id}', [AdminCabanaController::class, 'destroy'])->middleware('role:admin');
+
             Route::patch('/cabanas/{id}/status', [AdminCabanaController::class, 'toggleStatus']);
             Route::post('/cabanas/{id}/images', [AdminCabanaController::class , 'uploadImage']);
-            Route::delete('/images/{id}', [AdminCabanaController::class , 'deleteImage']);
+            Route::delete('/images/{id}', [AdminCabanaController::class , 'deleteImage'])->middleware('role:admin');
             Route::post('/cabanas/{id}/amenities', [AdminCabanaController::class , 'syncAmenities']);
 
             // Admin availability overrides
@@ -69,12 +75,20 @@ Route::prefix('v1')->group(function () {
             Route::get('/bookings', [AdminBookingController::class, 'index']);
             Route::get('/bookings/{id}', [AdminBookingController::class, 'show']);
             Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus']);
-            Route::delete('/bookings/{id}', [AdminBookingController::class, 'destroy']);
+            Route::delete('/bookings/{id}', [AdminBookingController::class, 'destroy'])->middleware('role:admin');
 
             Route::get('/payments', [AdminPaymentController::class , 'index']);
             Route::get('/dashboard', [AdminDashboardController::class , 'stats']);
             Route::get('/dashboard/stats', [AdminDashboardController::class , 'stats']);
 
-        }
-        );
-    });
+            // Admin Report Routes (Admin & Staff)
+            Route::prefix('reports')->group(function () {
+                Route::get('/bookings', [\App\Http\Controllers\Api\AdminReportController::class, 'bookings']);
+                Route::get('/revenue', [\App\Http\Controllers\Api\AdminReportController::class, 'revenue']);
+                Route::get('/occupancy', [\App\Http\Controllers\Api\AdminReportController::class, 'occupancy']);
+                Route::get('/export/bookings', [\App\Http\Controllers\Api\AdminReportController::class, 'exportBookings']);
+                Route::get('/export/revenue', [\App\Http\Controllers\Api\AdminReportController::class, 'exportRevenue']);
+                Route::get('/export/occupancy', [\App\Http\Controllers\Api\AdminReportController::class, 'exportOccupancy']);
+            });
+        });
+});
