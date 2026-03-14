@@ -9,9 +9,15 @@ export const useAdminStore = defineStore('admin', {
         payments: [],
         loading: false,
         error: null,
+        successMessage: null,
     }),
 
     actions: {
+        _setSuccess(msg) {
+            this.successMessage = msg;
+            setTimeout(() => { this.successMessage = null; }, 3500);
+        },
+
         async fetchDashboardStats() {
             this.loading = true;
             this.error = null;
@@ -44,10 +50,11 @@ export const useAdminStore = defineStore('admin', {
             this.loading = true;
             this.error = null;
             try {
-                // If the payload contains an image file, headers will be properly managed automatically if it's FormData.
-                const headers = payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};
+                const isForm = payload instanceof FormData;
+                const headers = isForm ? { 'Content-Type': 'multipart/form-data' } : {};
                 const response = await api.post('/admin/cabanas', payload, { headers });
-                await this.fetchCabanas(); // Refresh list automatically
+                await this.fetchCabanas();
+                this._setSuccess('Cabana created successfully!');
                 return response.data;
             } catch (err) {
                 this.error = err.response?.data?.message || 'Failed to create cabana.';
@@ -61,21 +68,19 @@ export const useAdminStore = defineStore('admin', {
             this.loading = true;
             this.error = null;
             try {
-                // HTML Forms don't support PUT with multipart/form-data natively in typical setups without method spoofing
-                // In Laravel, if using FormData, append `_method: 'PUT'` and send as POST.
-                let config = {};
-                let submitPayload = payload;
-
                 if (payload instanceof FormData) {
+                    // Laravel requires method spoofing for PUT with FormData
                     payload.append('_method', 'PUT');
-                    config.headers = { 'Content-Type': 'multipart/form-data' };
-                    // We must use POST to spoof PUT due to PHP constraints with multipart form overrides
-                    const response = await api.post(`/admin/cabanas/${id}`, payload, config);
+                    const response = await api.post(`/admin/cabanas/${id}`, payload, {
+                        headers: { 'Content-Type': 'multipart/form-data' },
+                    });
                     await this.fetchCabanas();
+                    this._setSuccess('Cabana updated successfully!');
                     return response.data;
                 } else {
                     const response = await api.put(`/admin/cabanas/${id}`, payload);
                     await this.fetchCabanas();
+                    this._setSuccess('Cabana updated successfully!');
                     return response.data;
                 }
             } catch (err) {
@@ -92,11 +97,29 @@ export const useAdminStore = defineStore('admin', {
             try {
                 await api.delete(`/admin/cabanas/${id}`);
                 await this.fetchCabanas();
+                this._setSuccess('Cabana deleted successfully!');
             } catch (err) {
                 this.error = err.response?.data?.message || 'Failed to delete cabana.';
                 throw err;
             } finally {
                 this.loading = false;
+            }
+        },
+
+        async toggleCabanaStatus(id) {
+            this.error = null;
+            try {
+                const response = await api.patch(`/admin/cabanas/${id}/status`);
+                // Optimistically update the local list
+                const idx = this.cabanas.findIndex(c => c.id === id);
+                if (idx !== -1) {
+                    this.cabanas[idx] = response.data.data;
+                }
+                this._setSuccess(response.data.message);
+                return response.data;
+            } catch (err) {
+                this.error = err.response?.data?.message || 'Failed to toggle cabana status.';
+                throw err;
             }
         },
 

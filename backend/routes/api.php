@@ -49,6 +49,7 @@ Route::prefix('v1')->group(function () {
         // Protected Admin Routes
         Route::middleware(['auth:sanctum', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->group(function () {
             Route::apiResource('cabanas', AdminCabanaController::class);
+            Route::patch('/cabanas/{id}/status', [AdminCabanaController::class, 'toggleStatus']);
             Route::post('/cabanas/{id}/images', [AdminCabanaController::class , 'uploadImage']);
             Route::delete('/images/{id}', [AdminCabanaController::class , 'deleteImage']);
             Route::post('/cabanas/{id}/amenities', [AdminCabanaController::class , 'syncAmenities']);

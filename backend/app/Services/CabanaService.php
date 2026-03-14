@@ -39,10 +39,19 @@ class CabanaService
 
     public function deleteCabana(Cabana $cabana)
     {
-        // Optional: you can choose to delete images from storage,
-        // or just let SoftDeletes handle the record deletion.
+        // Delete all associated images from storage first
+        foreach ($cabana->images as $image) {
+            Storage::disk('public')->delete($image->image_path);
+        }
         $cabana->delete();
         return true;
+    }
+
+    public function toggleStatus(Cabana $cabana)
+    {
+        $cabana->is_active = !$cabana->is_active;
+        $cabana->save();
+        return $cabana;
     }
 
     public function uploadImage(Cabana $cabana, UploadedFile $file, bool $isPrimary = false)

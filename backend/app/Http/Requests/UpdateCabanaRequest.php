@@ -19,7 +19,8 @@ class UpdateCabanaRequest extends FormRequest
             'price_per_night' => ['sometimes', 'required', 'numeric', 'min:0'],
             'max_guests' => ['sometimes', 'required', 'integer', 'min:1'],
             'location' => ['nullable', 'string', 'max:255'],
-            'is_active' => ['boolean']
+            'is_active' => ['sometimes', 'boolean'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
         ];
     }
 }

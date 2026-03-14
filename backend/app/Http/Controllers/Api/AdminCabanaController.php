@@ -10,6 +10,7 @@ use App\Http\Requests\SyncCabanaAmenitiesRequest;
 use App\Http\Resources\CabanaResource;
 use App\Services\CabanaService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AdminCabanaController extends Controller
 {
@@ -21,7 +22,7 @@ class AdminCabanaController extends Controller
     }
 
     /**
-     * Display a listing of the cabanas.
+     * Display a listing of all cabanas (including inactive).
      */
     public function index(): JsonResponse
     {
@@ -33,11 +34,23 @@ class AdminCabanaController extends Controller
     }
 
     /**
-     * Store a newly created cabana in storage.
+     * Store a newly created cabana, with optional inline image upload.
      */
     public function store(StoreCabanaRequest $request): JsonResponse
     {
-        $cabana = $this->cabanaService->createCabana($request->validated());
+        $data = $request->validated();
+
+        // Remove image from validated data before creating cabana
+        $imageFile = $request->file('image');
+        unset($data['image']);
+
+        $cabana = $this->cabanaService->createCabana($data);
+
+        // Upload primary image if provided
+        if ($imageFile) {
+            $this->cabanaService->uploadImage($cabana, $imageFile, true);
+            $cabana->load('images', 'primaryImage');
+        }
 
         return response()->json([
             'success' => true,
@@ -60,12 +73,24 @@ class AdminCabanaController extends Controller
     }
 
     /**
-     * Update the specified cabana in storage.
+     * Update the specified cabana, with optional inline image replacement.
      */
     public function update(UpdateCabanaRequest $request, string $id): JsonResponse
     {
         $cabana = $this->cabanaService->getCabanaById($id);
-        $updatedCabana = $this->cabanaService->updateCabana($cabana, $request->validated());
+        $data = $request->validated();
+
+        // Remove image from validated data before updating cabana
+        $imageFile = $request->file('image');
+        unset($data['image']);
+
+        $updatedCabana = $this->cabanaService->updateCabana($cabana, $data);
+
+        // Replace primary image if a new file was provided
+        if ($imageFile) {
+            $this->cabanaService->uploadImage($updatedCabana, $imageFile, true);
+            $updatedCabana->load('images', 'primaryImage');
+        }
 
         return response()->json([
             'success' => true,
@@ -75,7 +100,7 @@ class AdminCabanaController extends Controller
     }
 
     /**
-     * Remove the specified cabana from storage.
+     * Remove the specified cabana from storage (also deletes stored images).
      */
     public function destroy(string $id): JsonResponse
     {
@@ -89,7 +114,22 @@ class AdminCabanaController extends Controller
     }
 
     /**
-     * Upload an image for a cabana.
+     * Toggle the active/inactive status of a cabana.
+     */
+    public function toggleStatus(string $id): JsonResponse
+    {
+        $cabana = $this->cabanaService->getCabanaById($id);
+        $updated = $this->cabanaService->toggleStatus($cabana);
+
+        return response()->json([
+            'success' => true,
+            'message' => $updated->is_active ? 'Cabana activated successfully' : 'Cabana deactivated successfully',
+            'data' => new CabanaResource($updated)
+        ]);
+    }
+
+    /**
+     * Upload an image for a specific cabana.
      */
     public function uploadImage(UploadCabanaImageRequest $request, string $id): JsonResponse
     {
@@ -106,7 +146,7 @@ class AdminCabanaController extends Controller
     }
 
     /**
-     * Delete an image.
+     * Delete an image by image ID.
      */
     public function deleteImage(string $id): JsonResponse
     {
