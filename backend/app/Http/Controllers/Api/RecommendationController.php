@@ -11,11 +11,10 @@ use App\Models\Cabana;
 class RecommendationController extends Controller
 {
     /**
-     * Get the top 3 recommended cabanas based on confirmed booking counts.
+     * Public endpoint: return top 3 most-booked cabanas (popularity-based).
      */
     public function index(): JsonResponse
     {
-        // Get the top 3 most booked cabana IDs where the booking was confirmed
         $popularCabanaIds = DB::table('bookings')
             ->select('cabana_id', DB::raw('COUNT(*) as total_bookings'))
             ->where('status', 'confirmed')
@@ -24,19 +23,10 @@ class RecommendationController extends Controller
             ->limit(3)
             ->pluck('cabana_id');
 
-        // Check if we actually have popular ones
         if ($popularCabanaIds->isEmpty()) {
-            // Fallback: Just return 3 active cabanas if no bookings exist yet
-            $cabanas = Cabana::where('is_active', true)
-                ->with('images')
-                ->inRandomOrder()
-                ->take(3)
-                ->get();
+            $cabanas = Cabana::where('is_active', true)->with('images')->inRandomOrder()->take(3)->get();
         } else {
-            // Retrieve full Eloquent models for the top ID targets, ensuring they are active
-            // Order them according to the $popularCabanaIds array order using FIND_IN_SET
-            $idsSql = $popularCabanaIds->implode(',');
-            
+            $idsSql  = $popularCabanaIds->implode(',');
             $cabanas = Cabana::whereIn('id', $popularCabanaIds)
                 ->where('is_active', true)
                 ->with('images')
@@ -44,36 +34,180 @@ class RecommendationController extends Controller
                 ->get();
         }
 
-        // Format the UI structure and ensure the image is a full URL safely via asset() wrapper
-        $formatted = $cabanas->map(function ($cabana) {
-            
-            // Format image url safely
-            $imageUrl = null;
-            $imagesCollection = $cabana->images;
-            if ($imagesCollection && $imagesCollection->isNotEmpty()) {
-                // $firstImage is a CabanaImage model — access the image_path attribute
-                $firstImagePath = $imagesCollection->first()->image_path;
-                if (filter_var($firstImagePath, FILTER_VALIDATE_URL)) {
-                    $imageUrl = $firstImagePath;
-                } else {
-                    $imageUrl = asset('storage/' . ltrim($firstImagePath, '/'));
-                }
-            } else {
-                // Fallback placeholder directly via asset
-                $imageUrl = asset('images/cabana-placeholder.jpg'); 
-            }
-
-            return [
-                'id' => $cabana->id,
-                'name' => $cabana->name,
-                'price' => $cabana->price_per_night,
-                'image' => $imageUrl
-            ];
-        });
-
         return response()->json([
             'success' => true,
-            'data' => $formatted
+            'data'    => $cabanas->map(fn($c) => $this->formatCabana($c)),
         ]);
+    }
+
+    /**
+     * Protected endpoint: Personalized recommendations for the logged-in user.
+     *
+     * Algorithm (collaborative-filtering lite):
+     *  1. Get cabana IDs the user has already booked.
+     *  2. Find other users who booked those same cabanas ("similar users").
+     *  3. Get all cabanas those similar users booked — score by frequency.
+     *  4. Blend with top-rated and most-booked cabanas.
+     *  5. Exclude already-booked cabanas by this user.
+     *  6. Return top 4 with a human-readable reason.
+     */
+    public function personalized(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        // ── Step 1: User's already-booked cabana IDs ────────────────────
+        $userBookedIds = DB::table('bookings')
+            ->where('user_id', $userId)
+            ->whereNull('deleted_at')
+            ->pluck('cabana_id')
+            ->unique()
+            ->values();
+
+        $scores = [];  // cabana_id => ['score' => int, 'reason' => string]
+
+        // ── Step 2 & 3: Collaborative filtering ─────────────────────────
+        if ($userBookedIds->isNotEmpty()) {
+            // Find users who booked the same cabanas (not the current user)
+            $similarUserIds = DB::table('bookings')
+                ->whereIn('cabana_id', $userBookedIds)
+                ->where('user_id', '!=', $userId)
+                ->whereNull('deleted_at')
+                ->pluck('user_id')
+                ->unique();
+
+            if ($similarUserIds->isNotEmpty()) {
+                // Get what those similar users booked
+                $collaborativeCabanas = DB::table('bookings')
+                    ->select('cabana_id', DB::raw('COUNT(*) as freq'))
+                    ->whereIn('user_id', $similarUserIds)
+                    ->whereNotIn('cabana_id', $userBookedIds)
+                    ->whereNull('deleted_at')
+                    ->groupBy('cabana_id')
+                    ->orderByDesc('freq')
+                    ->get();
+
+                foreach ($collaborativeCabanas as $row) {
+                    $scores[$row->cabana_id] = [
+                        'score'  => $row->freq * 3,   // weight: collaborative is strongest signal
+                        'reason' => 'Guests who booked similar cabanas also loved this',
+                    ];
+                }
+            }
+        }
+
+        // ── Step 4a: Blend with top-rated cabanas ────────────────────────
+        $topRated = DB::table('reviews')
+            ->select('cabana_id', DB::raw('AVG(rating) as avg_rating'), DB::raw('COUNT(*) as cnt'))
+            ->groupBy('cabana_id')
+            ->having('cnt', '>=', 1)
+            ->orderByDesc('avg_rating')
+            ->limit(8)
+            ->get();
+
+        $bookedArr = $userBookedIds->toArray();
+        foreach ($topRated as $row) {
+            if (in_array($row->cabana_id, $bookedArr)) continue;
+            $existing = $scores[$row->cabana_id] ?? ['score' => 0, 'reason' => 'Highly rated by guests'];
+            $scores[$row->cabana_id] = [
+                'score'  => $existing['score'] + (int) round($row->avg_rating * 2),
+                'reason' => $existing['score'] > 0 ? $existing['reason'] : 'Highly rated by guests',
+            ];
+        }
+
+        // ── Step 4b: Blend with most-booked cabanas ─────────────────────
+        $mostBooked = DB::table('bookings')
+            ->select('cabana_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->whereNotIn('cabana_id', $userBookedIds->toArray())
+            ->whereNull('deleted_at')
+            ->groupBy('cabana_id')
+            ->orderByDesc('total')
+            ->limit(8)
+            ->get();
+
+        foreach ($mostBooked as $row) {
+            $existing = $scores[$row->cabana_id] ?? ['score' => 0, 'reason' => 'Trending — most booked right now'];
+            $scores[$row->cabana_id] = [
+                'score'  => $existing['score'] + $row->total,
+                'reason' => $existing['score'] > 0 ? $existing['reason'] : 'Trending — most booked right now',
+            ];
+        }
+
+        // ── Step 5: Exclude already-booked cabanas ─────────────────────
+        foreach ($userBookedIds as $id) {
+            unset($scores[$id]);
+        }
+
+        // ── Step 6: Sort by score, take top 4 ──────────────────────────
+        arsort($scores);
+        $topIds = array_keys(array_slice($scores, 0, 4, true));
+
+        // Fallback: if no scores, return active cabanas
+        if (empty($topIds)) {
+            $cabanas = Cabana::where('is_active', true)
+                ->whereNotIn('id', $userBookedIds->toArray())
+                ->with(['images', 'reviews'])
+                ->inRandomOrder()
+                ->take(4)
+                ->get();
+
+            return response()->json([
+                'recommended_cabanas' => $cabanas->map(function ($c) {
+                    return $this->formatPersonalized($c, 'Popular destinations for new guests');
+                }),
+            ]);
+        }
+
+        // Fetch full Eloquent models, preserving score order
+        $idsSql  = implode(',', $topIds);
+        $cabanas = Cabana::whereIn('id', $topIds)
+            ->where('is_active', true)
+            ->with(['images', 'reviews'])
+            ->orderByRaw("FIND_IN_SET(id, '{$idsSql}')")
+            ->get();
+
+        return response()->json([
+            'recommended_cabanas' => $cabanas->map(function ($cabana) use ($scores) {
+                $reason = $scores[$cabana->id]['reason'] ?? 'Recommended for you';
+                return $this->formatPersonalized($cabana, $reason);
+            }),
+        ]);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path) return null;
+        return filter_var($path, FILTER_VALIDATE_URL)
+            ? $path
+            : asset('storage/' . ltrim($path, '/'));
+    }
+
+    private function formatCabana(Cabana $cabana): array
+    {
+        $path = $cabana->images?->first()?->image_path;
+        return [
+            'id'    => $cabana->id,
+            'name'  => $cabana->name,
+            'price' => $cabana->price_per_night,
+            'image' => $this->resolveImageUrl($path),
+        ];
+    }
+
+    private function formatPersonalized(Cabana $cabana, string $reason): array
+    {
+        $path      = $cabana->images?->first()?->image_path;
+        $avgRating = $cabana->reviews?->avg('rating');
+
+        return [
+            'id'       => $cabana->id,
+            'name'     => $cabana->name,
+            'price'    => $cabana->price_per_night,
+            'location' => $cabana->location,
+            'image'    => $this->resolveImageUrl($path),
+            'rating'   => $avgRating ? round((float) $avgRating, 1) : null,
+            'reason'   => $reason,
+        ];
     }
 }

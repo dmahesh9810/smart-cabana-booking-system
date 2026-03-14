@@ -80,6 +80,13 @@
               {{ cabana.description || 'No description available for this cabana.' }}
             </p>
           </div>
+
+          <!-- Availability Calendar -->
+          <CabanaAvailabilityCalendar
+            v-if="cabana?.id"
+            :cabana-id="cabana.id"
+            class="mt-6"
+          />
         </div>
 
         <!-- Right: Booking Panel -->
@@ -177,6 +184,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useCabanaStore } from '../store/cabanaStore';
 import { useBookingStore } from '../store/bookingStore';
 import { formatLKR, formatLKRShort, todayISO } from '../utils/currency';
+import CabanaAvailabilityCalendar from '../components/CabanaAvailabilityCalendar.vue';
 
 const route = useRoute();
 const router = useRouter();

@@ -106,6 +106,17 @@
           </div>
         </div>
       </div>
+
+      <!-- AI Personalized Recommendations -->
+      <div class="mt-14">
+        <div class="flex items-center mb-8">
+          <div class="flex-1 h-px bg-slate-200"></div>
+          <p class="mx-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Recommended for You</p>
+          <div class="flex-1 h-px bg-slate-200"></div>
+        </div>
+        <RecommendedForYou />
+      </div>
+
     </div>
   </div>
 </template>
@@ -114,6 +125,7 @@
 import { onMounted } from 'vue';
 import { useBookingStore } from '../store/bookingStore';
 import { formatLKR } from '../utils/currency';
+import RecommendedForYou from '../components/RecommendedForYou.vue';
 
 const bookingStore = useBookingStore();
 const PLACEHOLDER = 'https://cf.bstatic.com/xdata/images/hotel/max1024x768/654424977.jpg?k=768eca1e486393ded0556fdd3f47e9b0fbd33770a37ac7b4d99cdb53ab3a955b&o=';

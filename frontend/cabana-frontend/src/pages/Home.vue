@@ -26,10 +26,16 @@
 
     <div class="container mx-auto px-4 max-w-7xl py-14">
 
-      <!-- Recommendation Section -->
+      <!-- AI Personalized Recommendations (authenticated users) -->
+      <div v-if="authStore.isAuthenticated" class="mb-10">
+        <RecommendedForYou />
+      </div>
+
+      <!-- Public popular recommendations -->
       <div class="mb-16">
         <RecommendedCabanas />
       </div>
+
 
       <!-- Section Divider -->
       <div class="flex items-center mb-10">
@@ -80,10 +86,13 @@
 <script setup>
 import { onMounted } from 'vue';
 import { useCabanaStore } from '../store/cabanaStore';
+import { useAuthStore } from '../store/authStore';
 import CabanaCard from '../components/CabanaCard.vue';
 import RecommendedCabanas from '../components/RecommendedCabanas.vue';
+import RecommendedForYou from '../components/RecommendedForYou.vue';
 
 const cabanaStore = useCabanaStore();
+const authStore   = useAuthStore();
 
 onMounted(() => {
   cabanaStore.fetchCabanas();

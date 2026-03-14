@@ -26,9 +26,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/cabanas/{id}/reviews', [ReviewController::class , 'index']);
     Route::get('/recommendations', [RecommendationController::class, 'index']);
 
+
     // Availability
     Route::post('/cabanas/{id}/check-availability', [AvailabilityController::class , 'check']);
     Route::get('/cabanas/{id}/calendar', [AvailabilityController::class , 'calendar']);
+    Route::get('/cabanas/{id}/availability', [AvailabilityController::class , 'availability']);
+
 
     // Protected Customer Routes
     Route::middleware('auth:sanctum')->group(function () {
@@ -37,7 +40,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/bookings', [BookingController::class , 'index']);
             Route::get('/bookings/{id}', [BookingController::class , 'show']);
 
+            // Personalized Recommendations (requires auth to identify user)
+            Route::get('/recommendations/personalized', [RecommendationController::class, 'personalized']);
+
             Route::post('/payments/initiate', [PaymentController::class , 'initiate']);
+
             Route::get('/payments/my-payments', [PaymentController::class , 'myPayments']);
             Route::post('/bookings/{id}/reviews', [ReviewController::class , 'store']);
         }
@@ -58,9 +65,16 @@ Route::prefix('v1')->group(function () {
             Route::post('/cabanas/{id}/block-dates', [\App\Http\Controllers\Api\AdminAvailabilityController::class , 'blockDates']);
             Route::delete('/availability/{id}', [\App\Http\Controllers\Api\AdminAvailabilityController::class , 'removeBlock']);
 
-            Route::get('/bookings', [AdminBookingController::class , 'index']);
+            // Admin Booking Routes
+            Route::get('/bookings', [AdminBookingController::class, 'index']);
+            Route::get('/bookings/{id}', [AdminBookingController::class, 'show']);
+            Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus']);
+            Route::delete('/bookings/{id}', [AdminBookingController::class, 'destroy']);
+
             Route::get('/payments', [AdminPaymentController::class , 'index']);
+            Route::get('/dashboard', [AdminDashboardController::class , 'stats']);
             Route::get('/dashboard/stats', [AdminDashboardController::class , 'stats']);
+
         }
         );
     });
