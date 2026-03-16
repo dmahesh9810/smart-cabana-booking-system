@@ -91,13 +91,21 @@
                 </span>
               </div>
               <!-- Pay now if pending -->
-              <div v-if="(!booking.payment || booking.payment?.status === 'pending') && booking.status !== 'cancelled'" class="pt-2">
+              <div v-if="(!booking.payment || booking.payment?.status === 'pending') && booking.status !== 'cancelled'" class="pt-2 flex flex-col gap-2">
                 <router-link
                   :to="{ name: 'Payment', query: { booking_id: booking.id } }"
-                  class="block w-full text-center bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl shadow-md hover:shadow-indigo-500/30 transition-all"
+                  class="block w-full text-center bg-gradient-to-r from-ocean-600 to-teal-500 hover:from-ocean-700 hover:to-teal-600 text-white font-bold py-3 rounded-xl shadow-md transition-all"
                 >
                   Pay Now
                 </router-link>
+              </div>
+              <div v-if="booking.status === 'pending' || booking.status === 'confirmed'" class="pt-2">
+                 <button
+                   @click="showCancelModal = true"
+                   class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-sm font-semibold py-3 rounded-xl transition-colors"
+                 >
+                   Cancel Booking
+                 </button>
               </div>
             </div>
           </div>
@@ -181,6 +189,36 @@
 
       </div>
     </div>
+    
+    <!-- Cancel Booking Modal -->
+    <Teleport to="body">
+      <Transition enter-active-class="transition-opacity duration-200" enter-from-class="opacity-0" enter-to-class="opacity-100">
+        <div v-if="showCancelModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showCancelModal = false"></div>
+          <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 flex flex-col items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-red-50 border-2 border-red-100 flex items-center justify-center">
+              <svg class="w-7 h-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              </svg>
+            </div>
+            <div class="text-center">
+              <h3 class="text-lg font-bold text-slate-900">Cancel Booking?</h3>
+              <p class="text-sm text-slate-500 mt-1">
+                This will cancel your booking. This cannot be undone.
+              </p>
+            </div>
+            <div class="flex gap-3 w-full pt-1">
+              <button @click="showCancelModal = false" class="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50">Keep Booking</button>
+              <button @click="executeCancel" :disabled="cancelLoading"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-60">
+                <span v-if="cancelLoading" class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -188,11 +226,13 @@
 import { onMounted, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useBookingStore } from '../store/bookingStore';
+import { useToast } from 'vue-toastification';
 import { formatLKR } from '../utils/currency';
 
 const route = useRoute();
 const router = useRouter();
 const bookingStore = useBookingStore();
+const toast = useToast();
 
 const booking = computed(() => bookingStore.currentBooking);
 
@@ -249,6 +289,24 @@ const submitReview = async () => {
     reviewError.value = bookingStore.error || 'Failed to submit review.';
   } finally {
     loadingReview.value = false;
+  }
+};
+
+const showCancelModal = ref(false);
+const cancelLoading = ref(false);
+
+const executeCancel = async () => {
+  cancelLoading.value = true;
+  try {
+    await bookingStore.cancelBooking(booking.value.id);
+    toast.success('Booking cancelled successfully.');
+    // refreshing the details
+    await bookingStore.fetchBookingDetails(booking.value.id);
+  } catch {
+    toast.error('Failed to cancel booking.');
+  } finally {
+    cancelLoading.value = false;
+    showCancelModal.value = false;
   }
 };
 </script>

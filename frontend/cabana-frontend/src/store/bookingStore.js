@@ -113,6 +113,20 @@ export const useBookingStore = defineStore('booking', {
             } finally {
                 this.loading = false;
             }
+        },
+
+        async cancelBooking(id) {
+            this.error = null;
+            try {
+                const response = await api.delete(`/bookings/${id}`);
+                // Update local list
+                const idx = this.userBookings.findIndex(b => b.id === id);
+                if (idx !== -1) this.userBookings[idx].status = 'cancelled';
+                return response.data;
+            } catch (err) {
+                this.error = err.response?.data?.message || 'Failed to cancel booking.';
+                throw err;
+            }
         }
     }
 });

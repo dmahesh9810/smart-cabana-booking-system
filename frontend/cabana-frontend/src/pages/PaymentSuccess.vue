@@ -18,10 +18,10 @@
         <p class="font-mono font-bold text-slate-800 text-lg">#{{ bookingId }}</p>
       </div>
 
-      <router-link to="/dashboard" class="w-full block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-xl transition duration-150 ease-in-out shadow-md">
+      <router-link to="/dashboard" class="w-full block bg-gradient-to-r from-ocean-600 to-teal-500 hover:from-ocean-700 hover:to-teal-600 text-white font-bold py-3.5 px-4 rounded-xl transition duration-150 ease-in-out shadow-md">
         View My Bookings
       </router-link>
-      <router-link to="/" class="block mt-4 text-indigo-600 font-medium hover:text-indigo-800">
+      <router-link to="/" class="block mt-4 text-ocean-600 font-medium hover:text-ocean-800 transition-colors">
         Return to Home
       </router-link>
     </div>

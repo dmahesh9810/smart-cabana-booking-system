@@ -91,6 +91,35 @@ export const useAuthStore = defineStore('auth', {
                 this.token = null;
                 localStorage.removeItem('token');
             }
+        },
+
+        async updateProfile(profileData) {
+            this.loading = true;
+            this.error = null;
+            try {
+                const response = await api.put('/user/profile', profileData);
+                this.user = response.data.data?.user || response.data.user || response.data;
+                return response.data;
+            } catch (err) {
+                this.error = err.response?.data?.message || 'Failed to update profile.';
+                throw err;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async resendVerification() {
+            this.loading = true;
+            this.error = null;
+            try {
+                const response = await api.post('/email/resend');
+                return response.data;
+            } catch (err) {
+                this.error = err.response?.data?.message || 'Failed to resend verification link.';
+                throw err;
+            } finally {
+                this.loading = false;
+            }
         }
     }
 });

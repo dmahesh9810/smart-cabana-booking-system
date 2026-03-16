@@ -19,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Use default email verification url mechanism
+        // Our api.php contains Route::get('/email/verify/{id}/{hash}')->name('verification.verify')
+        // Laravel will automatically find and use this named route.
     }
 }

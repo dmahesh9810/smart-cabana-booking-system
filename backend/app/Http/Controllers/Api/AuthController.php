@@ -31,6 +31,9 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // Send Email Verification
+        $user->sendEmailVerificationNotification();
+
         return $this->successResponse([
             'user' => $user->load('role'),
             'token' => $token

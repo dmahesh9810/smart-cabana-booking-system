@@ -101,8 +101,12 @@ const handleLogin = async () => {
             router.push('/dashboard');
         }
     } catch (error) {
-        // Error is technically already caught and pushed to authStore.error, but interceptor toast fires too.
-        console.error("Login Failed", error);
+        if (error.response?.status === 403 && error.response.data?.message?.includes('verify your email')) {
+             toast.warning('Please verify your email address first.');
+             router.push('/verify-email');
+        } else {
+             console.error("Login Failed", error);
+        }
     }
 };
 </script>

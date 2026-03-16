@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\AdminBookingController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminPaymentController;
 use App\Http\Controllers\Api\RecommendationController;
+use App\Http\Controllers\Api\VerificationController;
+use App\Http\Controllers\Api\NotificationController;
 
 Route::prefix('v1')->group(function () {
     // Auth Routes
@@ -22,6 +24,15 @@ Route::prefix('v1')->group(function () {
     });
     
     Route::post('/logout', [AuthController::class , 'logout'])->middleware(['auth:sanctum', 'throttle:10,1']);
+
+    // Email Verification Routes
+    Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
+        ->name('verification.verify')
+        ->middleware(['throttle:6,1']);
+
+    Route::post('/email/resend', [VerificationController::class, 'resend'])
+        ->middleware(['auth:sanctum', 'throttle:6,1'])
+        ->name('verification.resend');
 
     // Public Read Routes
     Route::middleware('throttle:60,1')->group(function () {
@@ -51,6 +62,12 @@ Route::prefix('v1')->group(function () {
 
             Route::get('/payments/my-payments', [PaymentController::class , 'myPayments']);
             Route::post('/bookings/{id}/reviews', [ReviewController::class , 'store']);
+
+            // Notifications
+            Route::get('/notifications', [NotificationController::class, 'index']);
+            Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+            // Standardizing trailing slash but let's stick to simple ones
+            Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
         }
     );
 

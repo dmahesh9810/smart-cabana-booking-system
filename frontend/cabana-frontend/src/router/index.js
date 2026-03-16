@@ -13,6 +13,8 @@ import BookingDetails from '../pages/BookingDetails.vue'
 import Payment from '../pages/Payment.vue'
 import PaymentSuccess from '../pages/PaymentSuccess.vue'
 import PaymentCancel from '../pages/PaymentCancel.vue'
+import EmailVerificationNotice from '../pages/EmailVerificationNotice.vue'
+import EmailVerified from '../pages/EmailVerified.vue'
 
 // Admin Views
 import AdminLayout from '../components/AdminLayout.vue'
@@ -30,6 +32,10 @@ const routes = [
     // Auth Requirements (Guests Only)
     { path: '/login', component: Login, name: 'Login', meta: { requiresGuest: true } },
     { path: '/register', component: Register, name: 'Register', meta: { requiresGuest: true } },
+
+    // Email Verification Routes
+    { path: '/verify-email', component: EmailVerificationNotice, name: 'EmailVerificationNotice' },
+    { path: '/email-verified', component: EmailVerified, name: 'EmailVerified' },
 
     // Auth Requirements (Logged In Users Only)
     { path: '/booking', component: Booking, name: 'Booking', meta: { requiresAuth: true } },

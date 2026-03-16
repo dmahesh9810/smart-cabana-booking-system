@@ -117,8 +117,8 @@ const handleRegister = async () => {
         await authStore.register(form.value);
         toast.success('Account created successfully! Welcome!');
         
-        // Immediately log them in / route them since token is saved
-        router.push('/dashboard');
+        // Redirect to email verification notice
+        router.push('/verify-email');
         
     } catch (error) {
         console.error("Registration Failed", error);

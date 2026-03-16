@@ -16,7 +16,7 @@
       <router-link :to="{ name: 'Payment', query: { booking_id: bookingId } }" class="w-full block bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 px-4 rounded-xl transition duration-150 ease-in-out shadow-md mb-4">
         Try Payment Again
       </router-link>
-      <router-link to="/" class="block mt-2 text-indigo-600 font-medium hover:text-indigo-800">
+      <router-link to="/" class="block mt-4 text-ocean-600 font-medium hover:text-ocean-800 transition-colors">
         Return to Home
       </router-link>
     </div>
