@@ -74,6 +74,9 @@ Route::prefix('v1')->group(function () {
     // Public Webhook for Payment
     Route::post('/payments/payhere-webhook', [PaymentController::class , 'webhook']);
 
+    // Channel Manager Webhook
+    Route::post('/bookingcom/webhook', [\App\Http\Controllers\Api\WebhookController::class, 'handleBookingComWebhook']);
+
     // Protected Management Routes (Admin & Staff)
     Route::middleware(['auth:sanctum', 'role:admin,staff', 'throttle:30,1'])->prefix('admin')->group(function () {
         // Cabanas

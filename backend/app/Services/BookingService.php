@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Services\NotificationService;
+use App\Jobs\SyncAvailabilityJob;
 
 class BookingService
 {
@@ -72,6 +73,9 @@ class BookingService
 
         // Clear dashboard cache on new booking
         \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+
+        // Trigger Outbound Channel Manager Sync Notification
+        SyncAvailabilityJob::dispatch($booking->id, 'created');
 
         return $booking;
     }
