@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\User;
 use App\Models\Cabana;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class BookingSeeder extends Seeder
 {
@@ -22,38 +23,52 @@ class BookingSeeder extends Seeder
             return;
         }
 
-        Booking::factory()
-            ->count(40)
-            ->create([
-                'user_id' => fn() => $users->random()->id,
-                'cabana_id' => fn() => $cabanas->random()->id,
-            ])
-            ->each(function ($booking) {
-                // Calculate correct amount
-                $checkIn = Carbon::parse($booking->check_in);
-                $checkOut = Carbon::parse($booking->check_out);
+        // Monthly distribution: Oct (8), Nov (12), Dec (18), Jan (15), Feb (20), Mar (27)
+        $distribution = [
+            ['month' => 10, 'year' => 2025, 'count' => 8],
+            ['month' => 11, 'year' => 2025, 'count' => 12],
+            ['month' => 12, 'year' => 2025, 'count' => 18],
+            ['month' => 1, 'year' => 2026, 'count' => 15],
+            ['month' => 2, 'year' => 2026, 'count' => 20],
+            ['month' => 3, 'year' => 2026, 'count' => 27],
+        ];
+
+        foreach ($distribution as $data) {
+            for ($i = 0; $i < $data['count']; $i++) {
+                // Generate a random day in the month
+                $day = rand(1, 28); // Safe for all months
+                $checkIn = Carbon::create($data['year'], $data['month'], $day, rand(10, 15), 0, 0);
+                $checkOut = (clone $checkIn)->addDays(rand(1, 3));
+
+                // 60% confirmed, 20% completed, 10% pending, 10% cancelled
+                $statusRoll = rand(1, 100);
+                if ($statusRoll <= 60) {
+                    $status = 'confirmed';
+                } elseif ($statusRoll <= 80) {
+                    $status = 'completed';
+                } elseif ($statusRoll <= 90) {
+                    $status = 'pending';
+                } else {
+                    $status = 'cancelled';
+                }
+
+                $cabana = $cabanas->random();
                 $nights = $checkIn->diffInDays($checkOut);
                 if ($nights <= 0) $nights = 1;
-                
-                $booking->total_amount = $booking->cabana->price_per_night * $nights;
-                $booking->save();
 
-                // Create payment
-                $status = ($booking->status === 'confirmed' || $booking->status === 'completed') ? 'paid' : 'pending';
-                \App\Models\Payment::factory()->create([
-                    'booking_id' => $booking->id,
-                    'amount' => $booking->total_amount,
-                    'payment_status' => $status,
+                Booking::create([
+                    'booking_ref' => 'BKG-' . strtoupper(Str::random(6)),
+                    'user_id' => $users->random()->id,
+                    'cabana_id' => $cabana->id,
+                    'check_in' => $checkIn->toDateString(),
+                    'check_out' => $checkOut->toDateString(),
+                    'guests_count' => rand(1, 4),
+                    'total_amount' => $cabana->price_per_night * $nights,
+                    'status' => $status,
+                    'created_at' => $checkIn->subDays(rand(1, 10)),
+                    'updated_at' => $checkIn,
                 ]);
-
-                // Create review for completed bookings
-                if ($booking->status === 'completed') {
-                    \App\Models\Review::factory()->create([
-                        'booking_id' => $booking->id,
-                        'user_id' => $booking->user_id,
-                        'cabana_id' => $booking->cabana_id,
-                    ]);
-                }
-            });
+            }
+        }
     }
 }

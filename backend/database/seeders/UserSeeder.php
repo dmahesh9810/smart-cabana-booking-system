@@ -14,6 +14,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $adminRole = \App\Models\Role::firstOrCreate(['name' => 'admin']);
+        $staffRole = \App\Models\Role::firstOrCreate(['name' => 'staff']);
         $customerRole = \App\Models\Role::firstOrCreate(['name' => 'customer']);
 
         // Create 1 Admin
@@ -27,8 +28,14 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // Create 20 Customers
-        User::factory()->count(20)->create([
+        // Create 2 Staff
+        User::factory()->count(2)->create([
+            'role_id' => $staffRole->id,
+            'password' => Hash::make('staff123'),
+        ]);
+
+        // Create 30 Customers
+        User::factory()->count(30)->create([
             'role_id' => $customerRole->id,
             'password' => Hash::make('password'),
         ]);

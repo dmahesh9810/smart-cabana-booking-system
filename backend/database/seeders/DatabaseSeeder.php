@@ -17,7 +17,8 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CabanaSeeder::class,
             BookingSeeder::class,
-            // ReviewSeeder is handled within BookingSeeder now
+            PaymentSeeder::class,
+            ReviewSeeder::class,
         ]);
     }
 }

@@ -14,8 +14,9 @@ class BookingFactory extends Factory
 
     public function definition(): array
     {
-        $checkIn = Carbon::now()->addDays($this->faker->numberBetween(-30, 30));
-        $checkOut = (clone $checkIn)->addDays($this->faker->numberBetween(1, 7));
+        // Distribute bookings over the last 6 months
+        $checkIn = Carbon::now()->subDays($this->faker->numberBetween(1, 180));
+        $checkOut = (clone $checkIn)->addDays($this->faker->numberBetween(1, 5));
 
         return [
             'booking_ref' => 'BKG-' . strtoupper($this->faker->bothify('??###?')),
