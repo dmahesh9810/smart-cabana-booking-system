@@ -205,6 +205,9 @@ class PaymentService
                 
                 // Dispatch queued SMS job instead of sending synchronously
                 \App\Jobs\SendSmsNotificationJob::dispatch($freshBooking, 'confirmation');
+
+                // Dispatch Channex availability synchronization
+                \App\Jobs\SyncChannexAvailabilityJob::dispatch($freshBooking);
             }
         }
     }

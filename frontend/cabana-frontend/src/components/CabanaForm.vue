@@ -69,17 +69,32 @@
           </div>
         </div>
 
-        <!-- Location -->
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Location</label>
-          <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">📍</span>
-            <input
-              type="text"
-              v-model="form.location"
-              placeholder="e.g. Mirissa, Sri Lanka"
-              class="w-full border border-slate-300 rounded-xl py-2.5 pl-9 pr-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-shadow"
-            />
+        <!-- Location & Channex ID -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Location</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">📍</span>
+              <input
+                type="text"
+                v-model="form.location"
+                placeholder="e.g. Mirissa, Sri Lanka"
+                class="w-full border border-slate-300 rounded-xl py-2.5 pl-9 pr-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-shadow"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Channex Room ID <span class="text-slate-400 font-normal text-xs">(Optional)</span></label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔗</span>
+              <input
+                type="text"
+                v-model="form.channex_room_type_id"
+                placeholder="e.g. 054ba3c2-69a2-4239..."
+                class="w-full border border-slate-300 rounded-xl py-2.5 pl-9 pr-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-shadow"
+              />
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1">Found in Channex Extranet -> Rooms</p>
           </div>
         </div>
 
@@ -229,6 +244,7 @@ const form = ref({
     max_guests: '',
     description: '',
     location: '',
+    channex_room_type_id: '',
     is_active: true,
 });
 
@@ -245,6 +261,7 @@ onMounted(() => {
             max_guests: props.cabana.max_guests || '',
             description: props.cabana.description || '',
             location: props.cabana.location || '',
+            channex_room_type_id: props.cabana.channex_room_type_id || '',
             is_active: props.cabana.is_active !== undefined ? props.cabana.is_active : true,
         };
         // Show existing image as preview (not a new upload — just display)

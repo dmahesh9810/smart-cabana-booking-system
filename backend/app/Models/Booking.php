@@ -13,7 +13,7 @@ class Booking extends Model
     protected $fillable = [
         'booking_ref', 'user_id', 'cabana_id',
         'check_in', 'check_out', 'guests_count',
-        'total_amount', 'status'
+        'total_amount', 'status', 'external_id', 'source'
     ];
 
     public function user()

@@ -48,4 +48,10 @@ return [
         'from'  => env('TWILIO_FROM'), // e.g. +15551234567
     ],
 
+    'channex' => [
+        'api_key' => env('CHANNEX_API_KEY'),
+        'base_url' => env('CHANNEX_BASE_URL', 'https://staging.channex.io/api/v1/'),
+        'webhook_token' => env('CHANNEX_WEBHOOK_TOKEN'),
+    ],
+
 ];

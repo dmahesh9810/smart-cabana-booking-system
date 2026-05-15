@@ -39,6 +39,7 @@
               <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
               <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">PayHere Ref</th>
               <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
+              <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-slate-100">
@@ -59,6 +60,20 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono text-xs">{{ payment.payhere_payment_id || 'N/A' }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ new Date(payment.created_at).toLocaleDateString() }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button 
+                  v-if="payment.payment_status === 'pending'"
+                  @click="confirmManualPayment(payment.id)"
+                  :disabled="isConfirming === payment.id"
+                  class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded transition-colors disabled:opacity-50 inline-flex items-center"
+                >
+                  <span v-if="isConfirming === payment.id" class="inline-flex items-center">
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Processing...
+                  </span>
+                  <span v-else>Confirm</span>
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -68,10 +83,11 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAdminStore } from '../store/adminStore';
 
 const adminStore = useAdminStore();
+const isConfirming = ref(null);
 
 onMounted(() => {
     adminStore.fetchPayments();
@@ -79,5 +95,18 @@ onMounted(() => {
 
 const refreshPayments = () => {
     adminStore.fetchPayments();
+};
+
+const confirmManualPayment = async (id) => {
+    if (!confirm("Are you sure you want to manually confirm this payment? This will confirm the booking, notify the customer, and sync with Channex.")) return;
+    
+    isConfirming.value = id;
+    try {
+        await adminStore.confirmPayment(id);
+    } catch (e) {
+        // Error is handled in store and displayed in UI
+    } finally {
+        isConfirming.value = null;
+    }
 };
 </script>

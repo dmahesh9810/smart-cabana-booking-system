@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useToast } from 'vue-toastification';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8000/api/v1', // Pointing to Laravel backend API
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1', // Pointing to Laravel backend API
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

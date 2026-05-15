@@ -87,6 +87,7 @@ class AdminBookingController extends Controller
         // Trigger Emails
         if ($booking->status === 'confirmed' && $oldStatus !== 'confirmed') {
             $this->notificationService->sendBookingConfirmed($booking);
+            \App\Jobs\SyncChannexAvailabilityJob::dispatch($booking);
         } elseif ($booking->status === 'cancelled' && $oldStatus !== 'cancelled') {
             $this->notificationService->sendBookingCancelled($booking);
         }

@@ -12,3 +12,4 @@ Schedule::job(new \App\Jobs\ExpirePendingBookingsJob)->everyFiveMinutes();
 Schedule::command('notifications:send-reminders')->dailyAt('08:00');
 Schedule::command('backup:run --only-db')->daily();
 Schedule::command('backup:clean')->daily();
+Schedule::command('ical:sync')->everyTenMinutes();

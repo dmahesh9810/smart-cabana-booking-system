@@ -194,5 +194,21 @@ export const useAdminStore = defineStore('admin', {
                 this.loading = false;
             }
         },
+
+        async confirmPayment(id) {
+            this.error = null;
+            try {
+                const response = await api.patch(`/admin/payments/${id}/status`);
+                const idx = this.payments.findIndex(p => p.id === id);
+                if (idx !== -1) {
+                    this.payments[idx] = response.data.data;
+                }
+                this._setSuccess(response.data.message);
+                return response.data;
+            } catch (err) {
+                this.error = err.response?.data?.message || 'Failed to confirm payment.';
+                throw err;
+            }
+        },
     },
 });

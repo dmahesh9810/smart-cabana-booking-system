@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\AdminPaymentController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\VerificationController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ChannexController;
 
 Route::prefix('v1')->group(function () {
     // Auth Routes
@@ -76,6 +77,17 @@ Route::prefix('v1')->group(function () {
 
     // Channel Manager Webhook
     Route::post('/bookingcom/webhook', [\App\Http\Controllers\Api\WebhookController::class, 'handleBookingComWebhook']);
+    Route::post('/webhooks/channex', [\App\Http\Controllers\Webhook\ChannexWebhookController::class, 'handle']);
+
+    // Channex Integration API Routes
+    Route::prefix('channex')->group(function () {
+        Route::get('/test', [ChannexController::class, 'testConnection']);
+        Route::get('/properties', [ChannexController::class, 'properties']);
+        Route::get('/rooms', [ChannexController::class, 'rooms']);
+        Route::get('/rates', [ChannexController::class, 'ratePlans']);
+        Route::get('/availability', [ChannexController::class, 'getAvailability']);
+        Route::post('/sync', [ChannexController::class, 'syncAllAvailability']);
+    });
 
     // Protected Management Routes (Admin & Staff)
     Route::middleware(['auth:sanctum', 'role:admin,staff', 'throttle:30,1'])->prefix('admin')->group(function () {
@@ -102,6 +114,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('/bookings/{id}', [AdminBookingController::class, 'destroy'])->middleware('role:admin');
 
         Route::get('/payments', [AdminPaymentController::class , 'index']);
+        Route::patch('/payments/{id}/status', [AdminPaymentController::class, 'markAsPaid']);
         Route::get('/dashboard', [AdminDashboardController::class , 'stats']);
         Route::get('/dashboard/stats', [AdminDashboardController::class , 'stats']);
 

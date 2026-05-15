@@ -11,8 +11,8 @@ class Cabana extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'name', 'description', 'price_per_night',
-        'max_guests', 'location', 'is_active'
+        'channex_room_type_id', 'name', 'description', 
+        'price_per_night', 'max_guests', 'location', 'is_active'
     ];
 
     public function images()
@@ -43,5 +43,10 @@ class Cabana extends Model
     public function reviews()
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function channexMapping()
+    {
+        return $this->hasOne(ChannexMapping::class);
     }
 }
